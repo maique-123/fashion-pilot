@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FashionPilot — 亚马逊服装智能选品系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0b0f;
+  --bg-secondary: #12131a;
+  --bg-card: #181924;
+  --bg-card-hover: #1e2030;
+  --bg-elevated: #222438;
+  --accent-orange: #ff6b35;
+  --accent-orange-dim: rgba(255,107,53,0.15);
+  --accent-blue: #4ecdc4;
+  --accent-blue-dim: rgba(78,205,196,0.12);
+  --accent-purple: #a78bfa;
+  --accent-gold: #fbbf24;
+  --accent-rose: #f472b6;
+  --text-primary: #e8e9f0;
+  --text-secondary: #8b8da3;
+  --text-dim: #555770;
+  --border: rgba(255,255,255,0.06);
+  --border-active: rgba(255,107,53,0.4);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-glow: 0 0 40px rgba(255,107,53,0.08);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0;
+  width: 260px;
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform var(--transition);
+}
+
+.logo-area {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-area h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.logo-area p {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nav-section {
+  padding: 20px 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 0 8px;
+  margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: 2px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  position: relative;
+}
+
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+
+.nav-item.active {
+  background: var(--accent-orange-dim);
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--accent-orange);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-item .icon { width: 20px; text-align: center; font-size: 16px; }
+
+.nav-item.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.nav-item .badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+  font-family: 'Space Mono', monospace;
+}
+
+/* AI Selector in sidebar */
+.ai-selector {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.ai-selector-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+}
+
+.ai-toggle {
+  display: flex;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 3px;
+}
+
+.ai-option {
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--transition);
+  color: var(--text-dim);
+}
+
+.ai-option.active-claude {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #000;
+}
+
+.ai-option.active-deepseek {
+  background: linear-gradient(135deg, #2563eb, #4ecdc4);
+  color: #fff;
+}
+
+/* ============ MAIN CONTENT ============ */
+.main {
+  margin-left: 260px;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10,11,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-left h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.topbar-left .page-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.topbar-btn:hover {
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+}
+
+.content {
+  padding: 28px 32px;
+}
+
+/* ============ DASHBOARD PAGE ============ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-orange), transparent);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.stat-card:hover { border-color: var(--border-active); transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+.stat-card:hover::after { opacity: 1; }
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 900;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: -1px;
+}
+
+.stat-change {
+  font-size: 12px;
+  margin-top: 6px;
+  font-family: 'Space Mono', monospace;
+}
+
+.stat-change.up { color: #34d399; }
+.stat-change.down { color: #f87171; }
+
+/* ============ SECTION PANELS ============ */
+.section-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-body {
+  padding: 22px;
+}
+
+/* ============ TABS ============ */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  width: fit-content;
+}
+
+.tab {
+  padding: 7px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.tab:hover { color: var(--text-secondary); }
+.tab.active { background: var(--bg-elevated); color: var(--text-primary); font-weight: 500; }
+
+/* ============ TABLE ============ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Space Mono', monospace;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.data-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.data-table .product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.product-name { font-weight: 500; color: var(--text-primary); font-size: 13px; }
+.product-asin { font-size: 11px; color: var(--text-dim); font-family: 'Space Mono', monospace; margin-top: 2px; }
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+}
+
+.rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+.rank-2 { background: linear-gradient(135deg, #94a3b8, #cbd5e1); color: #000; }
+.rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+.rank-other { background: var(--bg-elevated); color: var(--text-dim); }
+
+.trend-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.trend-hot { background: rgba(248,113,113,0.15); color: #f87171; }
+.trend-rising { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.trend-stable { background: rgba(78,205,196,0.15); color: #4ecdc4; }
+.trend-new { background: rgba(167,139,250,0.15); color: #a78bfa; }
+
+/* ============ CHARTS AREA (CSS CHARTS) ============ */
+.chart-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.mini-chart {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.mini-chart h4 {
+  font-size: 13px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 140px;
+  padding-top: 10px;
+}
+
+.bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  min-height: 4px;
+}
+
+.bar:hover { filter: brightness(1.3); }
+
+.bar-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'Space Mono', monospace;
+}
+
+/* Donut chart CSS */
+.donut-container {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.donut {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ============ AI CHAT PANEL ============ */
+.ai-chat-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.chat-messages {
+  padding: 20px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.chat-msg {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.chat-avatar.ai { background: linear-gradient(135deg, var(--accent-orange), var(--accent-gold)); }
+.chat-avatar.user { background: var(--bg-elevated); }
+
+.chat-bubble {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 80%;
+}
+
+.chat-bubble strong { color: var(--text-primary); }
+
+.chat-input-area {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.chat-input:focus { border-color: var(--accent-orange); }
+
+.chat-input::placeholder { color: var(--text-dim); }
+
+.chat-send {
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: linear-gradient(135deg, var(--accent-orange), #e85d2a);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+  white-space: nowrap;
+}
+
+.chat-send:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,107,53,0.3); }
+
+/* ============ SEARCH & FILTER BAR ============ */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-input {
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+  transition: border-color var(--transition);
+  min-width: 200px;
+}
+
+.filter-input:focus { border-color: var(--accent-orange); }
+
+.filter-select {
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555770' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: linear-gradient(135deg, var(--accent-orange), #e85d2a);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary:hover { box-shadow: 0 4px 16px rgba(255,107,53,0.3); transform: translateY(-1px); }
+
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-secondary:hover { border-color: var(--text-dim); color: var(--text-primary); }
+
+/* ============ PIPELINE TRACKER ============ */
+.pipeline-steps {
+  display: flex;
+  gap: 0;
+  margin: 20px 0;
+}
+
+.pipeline-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  padding: 16px 8px;
+}
+
+.pipeline-step::after {
+  content: '';
+  position: absolute;
+  top: 30px;
+  right: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+}
+
+.pipeline-step:last-child::after { display: none; }
+
+.pipeline-step.done::after { background: var(--accent-orange); }
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  position: relative;
+  z-index: 2;
+  border: 2px solid var(--border);
+  transition: all var(--transition);
+}
+
+.pipeline-step.done .step-circle {
+  background: var(--accent-orange);
+  color: #fff;
+  border-color: var(--accent-orange);
+}
+
+.pipeline-step.current .step-circle {
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+  box-shadow: 0 0 0 4px var(--accent-orange-dim);
+}
+
+.step-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.pipeline-step.done .step-label,
+.pipeline-step.current .step-label { color: var(--text-secondary); }
+
+/* ============ PRODUCT CARDS GRID ============ */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.product-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.product-card:hover {
+  border-color: var(--border-active);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-glow);
+}
+
+.product-card-img {
+  height: 160px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  position: relative;
+}
+
+.product-card-img .trend-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.product-card-body {
+  padding: 16px;
+}
+
+.product-card-body h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.product-card-body p {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+}
+
+.product-meta .price { color: var(--accent-orange); font-weight: 700; }
+.product-meta .reviews { color: var(--text-dim); }
+
+/* ============ MODAL ============ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 { font-size: 16px; }
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all var(--transition);
+}
+
+.modal-close:hover { color: var(--text-primary); }
+
+.modal-body { padding: 24px; }
+
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+}
+
+.form-control:focus { border-color: var(--accent-orange); }
+
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ============ PAGES ============ */
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ============ STATUS DOT ============ */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.green { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.4); }
+.status-dot.yellow { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4); }
+.status-dot.red { background: #f87171; }
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-area { grid-template-columns: 1fr; }
+  .products-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .products-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 12px 16px; }
+  .content { padding: 16px; }
+}
+
+/* ============ LOADING ANIMATION ============ */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.05) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ============ SPARKLINE ============ */
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 30px;
+}
+
+.spark-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent-orange);
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.spark-bar:last-child { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ====== SIDEBAR ====== -->
+<nav class="sidebar" id="sidebar">
+  <div class="logo-area">
+    <h1>FashionPilot</h1>
+    <p>Amazon Fashion Intelligence</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">核心功能</div>
+    <div class="nav-item active" data-page="dashboard">
+      <span class="icon">📊</span> 数据总览
+    </div>
+    <div class="nav-item" data-page="bestseller">
+      <span class="icon">🏆</span> Best Seller 分析
+    </div>
+    <div class="nav-item" data-page="trends">
+      <span class="icon">🔥</span> 站外趋势洞察
+    </div>
+    <div class="nav-item" data-page="selection">
+      <span class="icon">🎯</span> AI 智能选品
+    </div>
+
+    <div class="nav-label" style="margin-top:24px">产品开发</div>
+    <div class="nav-item" data-page="development">
+      <span class="icon">✏️</span> 产品开发管理
+    </div>
+    <div class="nav-item" data-page="samples">
+      <span class="icon">📦</span> 样品跟进
+    </div>
+
+    <div class="nav-label" style="margin-top:24px">更多版块</div>
+    <div class="nav-item disabled">
+      <span class="icon">📢</span> 广告投放
+      <span class="badge">即将推出</span>
+    </div>
+    <div class="nav-item disabled">
+      <span class="icon">📋</span> 库存管理
+      <span class="badge">即将推出</span>
+    </div>
+    <div class="nav-item disabled">
+      <span class="icon">💬</span> 客服管理
+      <span class="badge">即将推出</span>
+    </div>
+  </div>
+
+  <div class="ai-selector">
+    <div class="ai-selector-label">AI 模型</div>
+    <div class="ai-toggle">
+      <div class="ai-option active-claude" id="aiClaude" onclick="switchAI('claude')">Claude</div>
+      <div class="ai-option" id="aiDeepseek" onclick="switchAI('deepseek')">DeepSeek</div>
+    </div>
+  </div>
+</nav>
+
+<!-- ====== MAIN ====== -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none" id="menuBtn">☰</button>
+      <div>
+        <h2 id="pageTitle">数据总览</h2>
+        <div class="page-desc" id="pageDesc">亚马逊服装类目实时数据监控</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="status-dot green"></span>
+        <span style="font-size:12px;color:var(--text-dim)" id="aiStatusText">Claude 已连接</span>
+      </div>
+      <button class="topbar-btn" onclick="refreshData()">⟳ 刷新数据</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ====== PAGE: DASHBOARD ====== -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">📊 监控品类数</div>
+          <div class="stat-value">1,247</div>
+          <div class="stat-change up">↑ 12% vs 上月</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🏆 Best Seller 追踪</div>
+          <div class="stat-value">386</div>
+          <div class="stat-change up">↑ 8% 新增追踪</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🔥 热门趋势发现</div>
+          <div class="stat-value">53</div>
+          <div class="stat-change up">↑ 23 本周新增</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">✏️ 开发中产品</div>
+          <div class="stat-value">18</div>
+          <div class="stat-change down">3 待确认样品</div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <div class="mini-chart">
+          <h4>📈 热门子类目月均销量（Top 8）</h4>
+          <div class="bar-chart" id="barChart1"></div>
+        </div>
+        <div class="mini-chart">
+          <h4>🥧 价格带分布</h4>
+          <div class="donut-container">
+            <div class="donut" id="donut1"></div>
+            <div class="donut-legend" id="donutLegend1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Chat -->
+      <div class="ai-chat-panel">
+        <div class="section-header">
+          <h3>🤖 AI 选品助手 <span style="font-size:11px;color:var(--text-dim);font-weight:400;margin-left:8px" id="chatModelLabel">Claude</span></h3>
+          <div class="tabs">
+            <div class="tab active">智能问答</div>
+            <div class="tab">数据分析</div>
+            <div class="tab">选品建议</div>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              你好！我是你的 <strong>AI 选品助手</strong>。我可以帮你分析亚马逊服装类目数据、发现市场趋势、推荐选品方向。<br><br>
+              试试问我：<br>
+              • "分析女装连衣裙类目的Best Seller特征"<br>
+              • "最近TikTok上有哪些服装趋势？"<br>
+              • "给我推荐3个低竞争高利润的细分市场"
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input class="chat-input" id="chatInput" placeholder="输入你的问题，让 AI 帮你分析选品..." onkeypress="if(event.key==='Enter')sendChat()">
+          <button class="chat-send" onclick="sendChat()">发送 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: BESTSELLER ====== -->
+    <div class="page" id="page-bestseller">
+      <div class="filter-bar">
+        <select class="filter-select">
+          <option>全部站点</option>
+          <option>🇺🇸 美国站</option>
+          <option>🇬🇧 英国站</option>
+          <option>🇩🇪 德国站</option>
+          <option>🇯🇵 日本站</option>
+        </select>
+        <select class="filter-select">
+          <option>全部子类目</option>
+          <option>Women's Dresses</option>
+          <option>Women's Tops</option>
+          <option>Men's Shirts</option>
+          <option>Women's Activewear</option>
+          <option>Men's Pants</option>
+        </select>
+        <select class="filter-select">
+          <option>价格范围</option>
+          <option>$0 - $15</option>
+          <option>$15 - $30</option>
+          <option>$30 - $50</option>
+          <option>$50+</option>
+        </select>
+        <input class="filter-input" placeholder="🔍 搜索 ASIN / 关键词...">
+        <button class="btn-primary" onclick="simulateSearch()">🔍 搜索</button>
+        <button class="btn-secondary">⬇ 导出数据</button>
+      </div>
+
+      <div class="section-panel">
+        <div class="section-header">
+          <h3>🏆 Best Seller 排行 — Women's Dresses</h3>
+          <div class="tabs">
+            <div class="tab active">日榜</div>
+            <div class="tab">周榜</div>
+            <div class="tab">月榜</div>
+          </div>
+        </div>
+        <div class="section-body" style="padding:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:50px">排名</th>
+                <th>商品信息</th>
+                <th>价格</th>
+                <th>评分</th>
+                <th>评论数</th>
+                <th>月销量估</th>
+                <th>趋势</th>
+                <th>上架天数</th>
+              </tr>
+            </thead>
+            <tbody id="bsTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: TRENDS ====== -->
+    <div class="page" id="page-trends">
+      <div class="filter-bar">
+        <div class="tabs">
+          <div class="tab active">TikTok</div>
+          <div class="tab">Instagram</div>
+          <div class="tab">Pinterest</div>
+          <div class="tab">Google Trends</div>
+          <div class="tab">时尚周</div>
+        </div>
+        <button class="btn-primary" style="margin-left:auto">🔄 同步最新趋势</button>
+      </div>
+
+      <div class="products-grid" id="trendsGrid">
+      </div>
+    </div>
+
+    <!-- ====== PAGE: AI SELECTION ====== -->
+    <div class="page" id="page-selection">
+      <div class="section-panel">
+        <div class="section-header">
+          <h3>🎯 AI 智能选品引擎</h3>
+          <button class="btn-primary" onclick="showModal('selectionModal')">+ 新建选品任务</button>
+        </div>
+        <div class="section-body">
+          <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">
+            AI 会综合分析 Best Seller 数据、站外趋势、竞争度、利润空间，为你推荐最优选品方向
+          </p>
+
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+            <div class="stat-card">
+              <div class="stat-label">🎯 进行中的选品任务</div>
+              <div class="stat-value" style="font-size:24px">5</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">✅ 已完成推荐</div>
+              <div class="stat-value" style="font-size:24px">23</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">🚀 已转入开发</div>
+              <div class="stat-value" style="font-size:24px">8</div>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>任务名称</th>
+                <th>目标类目</th>
+                <th>AI模型</th>
+                <th>状态</th>
+                <th>推荐数</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">夏季连衣裙蓝海挖掘</td>
+                <td>Women's Dresses</td>
+                <td><span style="color:var(--accent-gold)">Claude</span></td>
+                <td><span class="trend-tag trend-hot">分析中</span></td>
+                <td>—</td>
+                <td style="font-family:'Space Mono'">2026-03-18</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">查看</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">男士休闲裤选品</td>
+                <td>Men's Pants</td>
+                <td><span style="color:var(--accent-blue)">DeepSeek</span></td>
+                <td><span class="trend-tag trend-stable">已完成</span></td>
+                <td>12</td>
+                <td style="font-family:'Space Mono'">2026-03-16</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">查看</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">运动内衣竞品分析</td>
+                <td>Women's Activewear</td>
+                <td><span style="color:var(--accent-gold)">Claude</span></td>
+                <td><span class="trend-tag trend-stable">已完成</span></td>
+                <td>8</td>
+                <td style="font-family:'Space Mono'">2026-03-14</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">查看</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">瑜伽服潮流款式</td>
+                <td>Women's Activewear</td>
+                <td><span style="color:var(--accent-blue)">DeepSeek</span></td>
+                <td><span class="trend-tag trend-rising">推荐中</span></td>
+                <td>5</td>
+                <td style="font-family:'Space Mono'">2026-03-12</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">查看</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: DEVELOPMENT ====== -->
+    <div class="page" id="page-development">
+      <div class="filter-bar">
+        <button class="btn-primary" onclick="showModal('devModal')">+ 新增产品</button>
+        <select class="filter-select">
+          <option>全部阶段</option>
+          <option>选品确认</option>
+          <option>设计中</option>
+          <option>打样中</option>
+          <option>样品优化</option>
+          <option>待上架</option>
+        </select>
+        <input class="filter-input" placeholder="🔍 搜索产品名称...">
+      </div>
+
+      <div class="section-panel">
+        <div class="section-header">
+          <h3>✏️ 产品开发流水线</h3>
+        </div>
+        <div class="section-body">
+          <div class="pipeline-steps">
+            <div class="pipeline-step done"><div class="step-circle">✓</div><div class="step-label">选品确认</div></div>
+            <div class="pipeline-step done"><div class="step-circle">✓</div><div class="step-label">需求文档</div></div>
+            <div class="pipeline-step current"><div class="step-circle">3</div><div class="step-label">设计开发</div></div>
+            <div class="pipeline-step"><div class="step-circle">4</div><div class="step-label">打样</div></div>
+            <div class="pipeline-step"><div class="step-circle">5</div><div class="step-label">样品确认</div></div>
+            <div class="pipeline-step"><div class="step-circle">6</div><div class="step-label">上架准备</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-panel">
+        <div class="section-body" style="padding:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>产品名称</th>
+                <th>类目</th>
+                <th>目标价格</th>
+                <th>阶段</th>
+                <th>负责人</th>
+                <th>截止日期</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">碎花V领连衣裙 2026夏</td>
+                <td>Women's Dresses</td>
+                <td style="font-family:'Space Mono'">$24.99</td>
+                <td><span class="trend-tag trend-rising">设计中</span></td>
+                <td>小王</td>
+                <td style="font-family:'Space Mono'">2026-04-01</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">详情</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">弹力高腰瑜伽裤</td>
+                <td>Women's Activewear</td>
+                <td style="font-family:'Space Mono'">$18.99</td>
+                <td><span class="trend-tag trend-hot">打样中</span></td>
+                <td>小李</td>
+                <td style="font-family:'Space Mono'">2026-03-28</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">详情</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">男士亚麻休闲裤</td>
+                <td>Men's Pants</td>
+                <td style="font-family:'Space Mono'">$29.99</td>
+                <td><span class="trend-tag trend-stable">样品确认</span></td>
+                <td>小张</td>
+                <td style="font-family:'Space Mono'">2026-03-22</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">详情</button></td>
+              </tr>
+              <tr>
+                <td style="color:var(--text-primary);font-weight:500">露肩针织上衣</td>
+                <td>Women's Tops</td>
+                <td style="font-family:'Space Mono'">$16.99</td>
+                <td><span class="trend-tag trend-new">选品确认</span></td>
+                <td>小王</td>
+                <td style="font-family:'Space Mono'">2026-04-10</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: SAMPLES ====== -->
+    <div class="page" id="page-samples">
+      <div class="filter-bar">
+        <button class="btn-primary" onclick="showModal('sampleModal')">+ 登记样品</button>
+        <select class="filter-select">
+          <option>全部状态</option>
+          <option>待寄出</option>
+          <option>运输中</option>
+          <option>已收到</option>
+          <option>评审中</option>
+          <option>通过</option>
+          <option>需修改</option>
+        </select>
+      </div>
+
+      <div class="section-panel">
+        <div class="section-header">
+          <h3>📦 样品跟踪看板</h3>
+        </div>
+        <div class="section-body" style="padding:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>样品编号</th>
+                <th>产品名称</th>
+                <th>供应商</th>
+                <th>版本</th>
+                <th>状态</th>
+                <th>寄出日期</th>
+                <th>预计到达</th>
+                <th>评审结果</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:'Space Mono';color:var(--accent-blue)">SP-2026-001</td>
+                <td style="color:var(--text-primary)">碎花V领连衣裙</td>
+                <td>广州锦绣服饰</td>
+                <td>V2</td>
+                <td><span class="trend-tag trend-rising">运输中</span></td>
+                <td style="font-family:'Space Mono'">03-15</td>
+                <td style="font-family:'Space Mono'">03-22</td>
+                <td>—</td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">跟进</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:'Space Mono';color:var(--accent-blue)">SP-2026-002</td>
+                <td style="color:var(--text-primary)">弹力高腰瑜伽裤</td>
+                <td>义乌动力体育</td>
+                <td>V1</td>
+                <td><span class="trend-tag trend-stable">已收到</span></td>
+                <td style="font-family:'Space Mono'">03-10</td>
+                <td style="font-family:'Space Mono'">03-16</td>
+                <td><span style="color:var(--accent-gold)">⚠ 需修改</span></td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">跟进</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:'Space Mono';color:var(--accent-blue)">SP-2026-003</td>
+                <td style="color:var(--text-primary)">男士亚麻休闲裤</td>
+                <td>海宁麻之道</td>
+                <td>V3</td>
+                <td><span class="trend-tag trend-stable">已收到</span></td>
+                <td style="font-family:'Space Mono'">03-08</td>
+                <td style="font-family:'Space Mono'">03-14</td>
+                <td><span style="color:#34d399">✓ 通过</span></td>
+                <td><button class="btn-secondary" style="padding:5px 12px;font-size:11px">跟进</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sample optimization AI -->
+      <div class="ai-chat-panel">
+        <div class="section-header">
+          <h3>🤖 AI 样品优化建议</h3>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-msg">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <strong>SP-2026-002 弹力高腰瑜伽裤 — 修改建议：</strong><br><br>
+              基于竞品分析和买家评论挖掘，建议以下优化方向：<br>
+              <strong>1. 面料手感</strong>：当前样品偏硬，建议更换为 75% 尼龙 + 25% 氨纶混纺<br>
+              <strong>2. 腰头设计</strong>：加宽腰头至 10cm，增加隐形口袋<br>
+              <strong>3. 缝线工艺</strong>：改用四针六线平缝，减少皮肤摩擦<br>
+              <strong>4. 颜色</strong>：增加"深墨绿"色号，该色在 TikTok #yogapants 标签下互动率最高
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input class="chat-input" placeholder="告诉 AI 你的修改意见或要求更多分析...">
+          <button class="chat-send" onclick="sendChat()">发送 →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== MODALS ====== -->
+<div class="modal-overlay" id="selectionModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🎯 新建 AI 选品任务</h3>
+      <button class="modal-close" onclick="hideModal('selectionModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">任务名称</label>
+        <input class="form-control" placeholder="例：夏季连衣裙蓝海挖掘">
+      </div>
+      <div class="form-group">
+        <label class="form-label">目标类目</label>
+        <select class="form-control">
+          <option>Women's Dresses</option>
+          <option>Women's Tops</option>
+          <option>Men's Shirts</option>
+          <option>Women's Activewear</option>
+          <option>Men's Pants</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目标站点</label>
+        <select class="form-control">
+          <option>🇺🇸 美国站</option>
+          <option>🇬🇧 英国站</option>
+          <option>🇩🇪 德国站</option>
+          <option>🇯🇵 日本站</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">AI 模型</label>
+        <select class="form-control" id="modalAiSelect">
+          <option>Claude — 深度分析推荐</option>
+          <option>DeepSeek — 快速数据挖掘</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">价格范围</label>
+        <div style="display:flex;gap:10px">
+          <input class="form-control" placeholder="最低 $" style="width:50%">
+          <input class="form-control" placeholder="最高 $" style="width:50%">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">额外要求（可选）</label>
+        <textarea class="form-control" placeholder="例如：避开有专利的款式，重点关注大码市场..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="hideModal('selectionModal')">取消</button>
+      <button class="btn-primary" onclick="hideModal('selectionModal')">🚀 开始选品分析</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="devModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ 新增开发产品</h3>
+      <button class="modal-close" onclick="hideModal('devModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">产品名称</label>
+        <input class="form-control" placeholder="例：碎花V领连衣裙 2026夏">
+      </div>
+      <div class="form-group">
+        <label class="form-label">类目</label>
+        <select class="form-control">
+          <option>Women's Dresses</option>
+          <option>Women's Tops</option>
+          <option>Men's Shirts</option>
+          <option>Women's Activewear</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目标售价</label>
+        <input class="form-control" placeholder="$">
+      </div>
+      <div class="form-group">
+        <label class="form-label">负责人</label>
+        <input class="form-control" placeholder="输入负责人姓名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">截止日期</label>
+        <input class="form-control" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-control" placeholder="产品设计要求、参考链接等..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="hideModal('devModal')">取消</button>
+      <button class="btn-primary" onclick="hideModal('devModal')">✓ 创建产品</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sampleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📦 登记新样品</h3>
+      <button class="modal-close" onclick="hideModal('sampleModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">关联产品</label>
+        <select class="form-control">
+          <option>碎花V领连衣裙 2026夏</option>
+          <option>弹力高腰瑜伽裤</option>
+          <option>男士亚麻休闲裤</option>
+          <option>露肩针织上衣</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">供应商</label>
+        <input class="form-control" placeholder="供应商名称">
+      </div>
+      <div class="form-group">
+        <label class="form-label">版本号</label>
+        <input class="form-control" placeholder="例：V1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">预计寄出日期</label>
+        <input class="form-control" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-control" placeholder="特殊要求、改进点..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="hideModal('sampleModal')">取消</button>
+      <button class="btn-primary" onclick="hideModal('sampleModal')">✓ 登记样品</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== DATA ======
+const bsData = [
+  { rank:1, name:"Floerns 碎花V领长袖连衣裙", asin:"B0CK7X2M9P", price:"$23.99", rating:"4.5", reviews:"12,847", sales:"8,200+", trend:"hot", days:142, emoji:"👗" },
+  { rank:2, name:"BTFBM 修身褶皱连衣裙", asin:"B0CJ9RKLM3", price:"$32.99", rating:"4.6", reviews:"9,423", sales:"6,800+", trend:"rising", days:89, emoji:"👗" },
+  { rank:3, name:"MEROKEETY 针织波西米亚长裙", asin:"B0CHNP4TW2", price:"$35.99", rating:"4.4", reviews:"7,156", sales:"5,500+", trend:"stable", days:203, emoji:"👗" },
+  { rank:4, name:"ANRABESS 宽松吊带连衣裙", asin:"B0CG7FXMR1", price:"$27.99", rating:"4.3", reviews:"15,302", sales:"5,100+", trend:"stable", days:367, emoji:"👗" },
+  { rank:5, name:"PRETTYGARDEN 方领泡泡袖裙", asin:"B0CDFR8KN5", price:"$36.99", rating:"4.5", reviews:"4,218", sales:"4,600+", trend:"rising", days:56, emoji:"👗" },
+  { rank:6, name:"ZESICA 碎花荷叶边迷你裙", asin:"B0CB3PMLW9", price:"$29.99", rating:"4.2", reviews:"6,890", sales:"4,200+", trend:"hot", days:178, emoji:"👗" },
+  { rank:7, name:"Dokotoo 系带衬衫式连衣裙", asin:"B0C9XKLMP4", price:"$31.99", rating:"4.4", reviews:"3,567", sales:"3,800+", trend:"new", days:32, emoji:"👗" },
+  { rank:8, name:"LILLUSORY 运动风T恤裙", asin:"B0C8MNRPW2", price:"$19.99", rating:"4.1", reviews:"8,901", sales:"3,500+", trend:"stable", days:289, emoji:"👗" },
+];
+
+const trendData = [
+  { name:"Coquette蝴蝶结元素", source:"TikTok", views:"2.8亿", trend:"hot", emoji:"🎀", desc:"蝴蝶结、蕾丝、粉色系少女风" },
+  { name:"Quiet Luxury极简风", source:"Instagram", views:"1.5亿", trend:"rising", emoji:"🤍", desc:"高质感面料、中性色、简约裁剪" },
+  { name:"Cottagecore田园风", source:"Pinterest", views:"9,200万", trend:"stable", emoji:"🌸", desc:"碎花、泡泡袖、亚麻材质" },
+  { name:"Mob Wife美学", source:"TikTok", views:"6,800万", trend:"hot", emoji:"🖤", desc:"豹纹、皮草、夸张配饰" },
+  { name:"运动Gorpcore风", source:"Instagram", views:"5,400万", trend:"rising", emoji:"🏔️", desc:"户外机能风、防水面料、拼接设计" },
+  { name:"Blokecore球衣风", source:"TikTok", views:"4,100万", trend:"new", emoji:"⚽", desc:"复古球衣、条纹、宽松剪裁" },
+];
+
+// ====== NAVIGATION ======
+const navItems = document.querySelectorAll('.nav-item:not(.disabled)');
+const pageTitles = {
+  dashboard: ['数据总览', '亚马逊服装类目实时数据监控'],
+  bestseller: ['Best Seller 分析', '追踪热销榜单，发现爆款规律'],
+  trends: ['站外趋势洞察', '社交媒体与时尚趋势聚合分析'],
+  selection: ['AI 智能选品', '综合数据分析，精准推荐选品方向'],
+  development: ['产品开发管理', '从选品到上架的全流程管理'],
+  samples: ['样品跟进', '样品寄送、评审、优化全程追踪'],
+};
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('pageTitle').textContent = pageTitles[page][0];
+    document.getElementById('pageDesc').textContent = pageTitles[page][1];
+  });
+});
+
+// ====== AI TOGGLE ======
+let currentAI = 'claude';
+
+function switchAI(ai) {
+  currentAI = ai;
+  const c = document.getElementById('aiClaude');
+  const d = document.getElementById('aiDeepseek');
+  c.className = 'ai-option' + (ai === 'claude' ? ' active-claude' : '');
+  d.className = 'ai-option' + (ai === 'deepseek' ? ' active-deepseek' : '');
+  document.getElementById('aiStatusText').textContent = (ai === 'claude' ? 'Claude' : 'DeepSeek') + ' 已连接';
+  document.getElementById('chatModelLabel').textContent = ai === 'claude' ? 'Claude' : 'DeepSeek';
+}
+
+// ====== RENDER BS TABLE ======
+function renderBSTable() {
+  const tbody = document.getElementById('bsTableBody');
+  tbody.innerHTML = bsData.map(d => `
+    <tr>
+      <td><span class="rank-badge rank-${d.rank <= 3 ? d.rank : 'other'}">${d.rank}</span></td>
+      <td>
+        <div class="product-cell">
+          <div class="product-img">${d.emoji}</div>
+          <div>
+            <div class="product-name">${d.name}</div>
+            <div class="product-asin">${d.asin}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-family:'Space Mono';color:var(--accent-orange);font-weight:700">${d.price}</td>
+      <td>⭐ ${d.rating}</td>
+      <td style="font-family:'Space Mono'">${d.reviews}</td>
+      <td style="font-family:'Space Mono';font-weight:600">${d.sales}</td>
+      <td><span class="trend-tag trend-${d.trend}">${{hot:'🔥 热销',rising:'📈 上升',stable:'➡ 稳定',new:'✨ 新品'}[d.trend]}</span></td>
+      <td style="font-family:'Space Mono'">${d.days}天</td>
+    </tr>
+  `).join('');
+}
+
+// ====== RENDER TRENDS ======
+function renderTrends() {
+  const grid = document.getElementById('trendsGrid');
+  grid.innerHTML = trendData.map(d => `
+    <div class="product-card">
+      <div class="product-card-img">
+        ${d.emoji}
+        <span class="trend-tag trend-${d.trend}">${{hot:'🔥 爆款',rising:'📈 增长',stable:'➡ 持续',new:'✨ 新兴'}[d.trend]}</span>
+      </div>
+      <div class="product-card-body">
+        <h4>${d.name}</h4>
+        <p>${d.desc}</p>
+        <div class="product-meta">
+          <span class="price">${d.source}</span>
+          <span class="reviews">👁 ${d.views}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ====== RENDER BAR CHART ======
+function renderBarChart() {
+  const categories = [
+    { label:'连衣裙', value:82, color:'var(--accent-orange)' },
+    { label:'上衣', value:65, color:'var(--accent-blue)' },
+    { label:'裤装', value:58, color:'var(--accent-purple)' },
+    { label:'运动', value:53, color:'var(--accent-gold)' },
+    { label:'外套', value:41, color:'var(--accent-rose)' },
+    { label:'裙子', value:38, color:'#34d399' },
+    { label:'内衣', value:30, color:'#fb923c' },
+    { label:'泳装', value:22, color:'#60a5fa' },
+  ];
+  const chart = document.getElementById('barChart1');
+  chart.innerHTML = categories.map(c => `
+    <div class="bar-group">
+      <div class="bar" style="height:${c.value}%;background:${c.color};opacity:0.8"></div>
+      <div class="bar-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// ====== RENDER DONUT ======
+function renderDonut() {
+  const data = [
+    { label:'$15-30', pct:38, color:'var(--accent-orange)' },
+    { label:'$30-50', pct:27, color:'var(--accent-blue)' },
+    { label:'$0-15', pct:20, color:'var(--accent-purple)' },
+    { label:'$50+', pct:15, color:'var(--accent-gold)' },
+  ];
+  let gradientParts = [];
+  let cumulative = 0;
+  data.forEach(d => {
+    gradientParts.push(`${d.color} ${cumulative}% ${cumulative + d.pct}%`);
+    cumulative += d.pct;
+  });
+  document.getElementById('donut1').style.background = `conic-gradient(${gradientParts.join(', ')})`;
+  document.getElementById('donut1').innerHTML = '<div class="donut-center">100%</div>';
+  document.getElementById('donutLegend1').innerHTML = data.map(d => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${d.color}"></div>
+      ${d.label} — ${d.pct}%
+    </div>
+  `).join('');
+}
+
+// ====== CHAT ======
+const chatResponses = {
+  claude: [
+    "基于我对亚马逊Best Seller数据的分析，**Women's Dresses** 类目中，$20-35 价格带竞争最为激烈但也最有潜力。建议关注 **碎花+V领** 组合，这个细分在过去30天搜索量增长了34%，但新品占比仅12%，仍有空间。\n\n具体建议：面料选雪纺或棉麻混纺，主打轻薄透气卖点。",
+    "通过交叉分析TikTok趋势和亚马逊搜索数据，我发现 **Coquette风格** 在社交媒体上热度极高，但亚马逊上符合这一风格的产品供给还不充分。建议考虑推出带蝴蝶结元素的连衣裙，定价$25-35区间。",
+    "从竞品评论中挖掘到的高频痛点：1) 面料偏薄（提及率23%）2) 尺码偏小（18%）3) 颜色与图片不符（15%）。建议在产品开发时重点解决这三个问题，可以成为差异化优势。",
+  ],
+  deepseek: [
+    "根据数据分析，当前Women's Dresses类目TOP100中：平均价格$28.50，平均评分4.3，平均评论数8,500+。新品（<90天）占比15%，说明市场仍有新入者机会。\n\n重点数据：碎花裙搜索量月环比+22%，纯色裙-5%，建议押注碎花品类。",
+    "站外趋势数据抓取结果：TikTok #summerdress 标签本周新增视频12万条，总播放量3.2亿。热门元素排序：碎花 > 纯色 > 条纹 > 格纹。热门颜色：蓝色系 > 绿色系 > 粉色系。",
+    "竞品矩阵分析完成。在$20-30价格带内，评分≥4.3且评论数<5000的产品有47个，这些是潜力竞品。其中23个上架时间不足6个月，建议重点研究这批产品的listing策略。",
+  ]
+};
+
+let chatIdx = { claude: 0, deepseek: 0 };
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const container = document.getElementById('chatMessages');
+  container.innerHTML += `
+    <div class="chat-msg">
+      <div class="chat-avatar user">👤</div>
+      <div class="chat-bubble" style="background:var(--accent-orange-dim)">${msg}</div>
+    </div>
+  `;
+  input.value = '';
+
+  setTimeout(() => {
+    const responses = chatResponses[currentAI];
+    const idx = chatIdx[currentAI] % responses.length;
+    chatIdx[currentAI]++;
+    container.innerHTML += `
+      <div class="chat-msg">
+        <div class="chat-avatar ai">🤖</div>
+        <div class="chat-bubble">${responses[idx].replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+      </div>
+    `;
+    container.scrollTop = container.scrollHeight;
+  }, 800);
+}
+
+// ====== MODALS ======
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function hideModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+// ====== SIMULATE SEARCH ======
+function simulateSearch() {
+  const tbody = document.getElementById('bsTableBody');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px"><div class="skeleton" style="width:60%;height:20px;margin:0 auto 10px"></div><div class="skeleton" style="width:40%;height:20px;margin:0 auto"></div></td></tr>';
+  setTimeout(renderBSTable, 1200);
+}
+
+// ====== REFRESH ======
+function refreshData() {
+  document.querySelectorAll('.stat-value').forEach(el => {
+    el.style.opacity = '0.3';
+    setTimeout(() => el.style.opacity = '1', 600);
+  });
+}
+
+// ====== RESPONSIVE MENU ======
+function checkWidth() {
+  document.getElementById('menuBtn').style.display = window.innerWidth <= 768 ? 'block' : 'none';
+}
+window.addEventListener('resize', checkWidth);
+checkWidth();
+
+// ====== INIT ======
+renderBSTable();
+renderTrends();
+renderBarChart();
+renderDonut();
+</script>
+
+</body>
+</html>
