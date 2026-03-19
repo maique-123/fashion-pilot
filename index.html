@@ -1221,6 +1221,19 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .spark-bar:last-child { opacity: 1; }
+
+/* ============ LOADING DOTS ============ */
+.loading-dots::after {
+  content: '';
+  animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
 </style>
 </head>
 <body>
@@ -1445,7 +1458,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           <option>$50+</option>
         </select>
         <input class="filter-input" placeholder="🔍 搜索 ASIN / 关键词...">
-        <button class="btn-primary" onclick="simulateSearch()">🔍 搜索</button>
+        <button class="btn-primary" onclick="lookupASIN()">🔍 搜索</button>
         <button class="btn-secondary">⬇ 导出数据</button>
       </div>
 
@@ -2057,49 +2070,141 @@ function renderDonut() {
   `).join('');
 }
 
-// ====== CHAT ======
-const chatResponses = {
-  claude: [
-    "基于我对亚马逊Best Seller数据的分析，**Women's Dresses** 类目中，$20-35 价格带竞争最为激烈但也最有潜力。建议关注 **碎花+V领** 组合，这个细分在过去30天搜索量增长了34%，但新品占比仅12%，仍有空间。\n\n具体建议：面料选雪纺或棉麻混纺，主打轻薄透气卖点。",
-    "通过交叉分析TikTok趋势和亚马逊搜索数据，我发现 **Coquette风格** 在社交媒体上热度极高，但亚马逊上符合这一风格的产品供给还不充分。建议考虑推出带蝴蝶结元素的连衣裙，定价$25-35区间。",
-    "从竞品评论中挖掘到的高频痛点：1) 面料偏薄（提及率23%）2) 尺码偏小（18%）3) 颜色与图片不符（15%）。建议在产品开发时重点解决这三个问题，可以成为差异化优势。",
-  ],
-  deepseek: [
-    "根据数据分析，当前Women's Dresses类目TOP100中：平均价格$28.50，平均评分4.3，平均评论数8,500+。新品（<90天）占比15%，说明市场仍有新入者机会。\n\n重点数据：碎花裙搜索量月环比+22%，纯色裙-5%，建议押注碎花品类。",
-    "站外趋势数据抓取结果：TikTok #summerdress 标签本周新增视频12万条，总播放量3.2亿。热门元素排序：碎花 > 纯色 > 条纹 > 格纹。热门颜色：蓝色系 > 绿色系 > 粉色系。",
-    "竞品矩阵分析完成。在$20-30价格带内，评分≥4.3且评论数<5000的产品有47个，这些是潜力竞品。其中23个上架时间不足6个月，建议重点研究这批产品的listing策略。",
-  ]
-};
+// ====== CHAT - REAL AI ======
+const API_URL = '/api/sorftime';
 
-let chatIdx = { claude: 0, deepseek: 0 };
+async function apiCall(action, params = {}) {
+  const resp = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, params })
+  });
+  return await resp.json();
+}
 
-function sendChat() {
+function formatAIText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+    .replace(/#{1,3}\s(.*?)(<br>)/g, '<strong style="font-size:14px">$1</strong>$2');
+}
+
+function addChatMsg(container, role, text) {
+  const isAI = role === 'ai';
+  container.innerHTML += `
+    <div class="chat-msg">
+      <div class="chat-avatar ${role}">${isAI ? '🤖' : '👤'}</div>
+      <div class="chat-bubble" ${!isAI ? 'style="background:var(--accent-orange-dim)"' : ''}>${text}</div>
+    </div>`;
+  container.scrollTop = container.scrollHeight;
+}
+
+function addLoadingMsg(container) {
+  const id = 'loading-' + Date.now();
+  container.innerHTML += `
+    <div class="chat-msg" id="${id}">
+      <div class="chat-avatar ai">🤖</div>
+      <div class="chat-bubble"><span class="loading-dots">正在分析中</span></div>
+    </div>`;
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeLoadingMsg(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+async function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
 
   const container = document.getElementById('chatMessages');
-  container.innerHTML += `
-    <div class="chat-msg">
-      <div class="chat-avatar user">👤</div>
-      <div class="chat-bubble" style="background:var(--accent-orange-dim)">${msg}</div>
-    </div>
-  `;
+  addChatMsg(container, 'user', msg);
   input.value = '';
 
-  setTimeout(() => {
-    const responses = chatResponses[currentAI];
-    const idx = chatIdx[currentAI] % responses.length;
-    chatIdx[currentAI]++;
-    container.innerHTML += `
-      <div class="chat-msg">
-        <div class="chat-avatar ai">🤖</div>
-        <div class="chat-bubble">${responses[idx].replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
-      </div>
-    `;
-    container.scrollTop = container.scrollHeight;
-  }, 800);
+  const loadingId = addLoadingMsg(container);
+
+  try {
+    const result = await apiCall('ai_chat', {
+      message: msg,
+      model: currentAI
+    });
+
+    removeLoadingMsg(loadingId);
+
+    if (result.success) {
+      addChatMsg(container, 'ai', formatAIText(result.reply));
+    } else {
+      addChatMsg(container, 'ai', `⚠️ 错误: ${result.error || '请求失败，请稍后重试'}`);
+    }
+  } catch (e) {
+    removeLoadingMsg(loadingId);
+    addChatMsg(container, 'ai', `⚠️ 网络错误: ${e.message}`);
+  }
 }
+
+// ====== ASIN LOOKUP ======
+async function lookupASIN() {
+  const asinInput = document.querySelector('#page-bestseller .filter-input');
+  const asin = asinInput ? asinInput.value.trim() : '';
+  if (!asin) { alert('请输入ASIN'); return; }
+
+  const container = document.getElementById('chatMessages');
+  const chatNav = document.querySelector('[data-page="dashboard"]');
+  if (chatNav) chatNav.click(); // switch to dashboard to see chat
+
+  addChatMsg(container, 'user', `🔍 查询产品: ${asin}`);
+  const loadingId = addLoadingMsg(container);
+
+  try {
+    // Get real product data from Sorftime
+    const dataResult = await apiCall('product_detail', { asin, site: 'US' });
+
+    if (dataResult.success && dataResult.data) {
+      removeLoadingMsg(loadingId);
+      addChatMsg(container, 'ai', `📦 <strong>产品数据已获取</strong><br><br>${formatAIText(dataResult.data.substring(0, 2000))}`);
+
+      // Now analyze with AI
+      const analyzeLoading = addLoadingMsg(container);
+      const aiResult = await apiCall('ai_analyze', {
+        asin, site: 'US', model: currentAI,
+        question: '请从选品角度分析这个产品：1)市场竞争力 2)价格策略 3)评论特征 4)是否值得跟进 5)改进建议'
+      });
+      removeLoadingMsg(analyzeLoading);
+
+      if (aiResult.success) {
+        addChatMsg(container, 'ai', `🧠 <strong>${aiResult.model} 选品分析：</strong><br><br>${formatAIText(aiResult.reply)}`);
+      }
+    } else {
+      removeLoadingMsg(loadingId);
+      addChatMsg(container, 'ai', `⚠️ 未找到该产品数据: ${dataResult.error || '请检查ASIN是否正确'}`);
+    }
+  } catch (e) {
+    removeLoadingMsg(loadingId);
+    addChatMsg(container, 'ai', `⚠️ 查询失败: ${e.message}`);
+  }
+}
+
+// ====== CHECK API HEALTH ON LOAD ======
+async function checkAPIHealth() {
+  try {
+    const result = await apiCall('health');
+    if (result.success) {
+      const s = result.keys;
+      const statusEl = document.getElementById('aiStatusText');
+      if (s.sorftime && (s.openrouter || s.deepseek)) {
+        statusEl.textContent = currentAI === 'claude' ? 'Claude 已连接' : 'DeepSeek 已连接';
+        statusEl.previousElementSibling.className = 'status-dot green';
+      } else {
+        statusEl.textContent = 'API 未完全配置';
+        statusEl.previousElementSibling.className = 'status-dot yellow';
+      }
+    }
+  } catch(e) { /* silent */ }
+}
+setTimeout(checkAPIHealth, 1000);
 
 // ====== MODALS ======
 function showModal(id) { document.getElementById(id).classList.add('show'); }
