@@ -1,4 +1,4 @@
-// Vercel Serverless Function: /api/sorftime.js
+// Vercel Serverless Function: /api/sorftime.js 
 // MCP streamableHttp client for Sorftime data + AI analysis
 
 export const config = {
