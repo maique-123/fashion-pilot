@@ -33,6 +33,244 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ============ LOGIN SCREEN ============ */
+.login-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.login-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+}
+
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+}
+
+.login-orb-1 {
+  width: 500px; height: 500px;
+  background: var(--accent-orange);
+  top: -100px; right: -100px;
+  animation: orbFloat1 12s ease-in-out infinite;
+}
+
+.login-orb-2 {
+  width: 400px; height: 400px;
+  background: var(--accent-blue);
+  bottom: -80px; left: -80px;
+  animation: orbFloat2 15s ease-in-out infinite;
+}
+
+.login-orb-3 {
+  width: 300px; height: 300px;
+  background: var(--accent-purple);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: orbFloat3 10s ease-in-out infinite;
+}
+
+@keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,40px)} }
+@keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,-30px)} }
+@keyframes orbFloat3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.15)} }
+
+.login-card {
+  position: relative;
+  z-index: 2;
+  width: 400px;
+  background: rgba(18,19,26,0.85);
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 44px 36px 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(255,107,53,0.04);
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.login-logo-icon {
+  display: inline-flex;
+  margin-bottom: 14px;
+}
+
+.login-logo h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.login-logo p {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  letter-spacing: 2px;
+}
+
+.login-field {
+  margin-bottom: 20px;
+}
+
+.login-field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.login-field input {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(10,11,15,0.7);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+  transition: all var(--transition);
+}
+
+.login-field input:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 3px var(--accent-orange-dim);
+}
+
+.login-field input::placeholder { color: var(--text-dim); }
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input { padding-right: 44px; }
+
+.toggle-pass {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.toggle-pass:hover { opacity: 0.8; }
+
+.login-remember {
+  margin-bottom: 24px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-orange);
+  cursor: pointer;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-orange), #e85d2a);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+  letter-spacing: 4px;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,107,53,0.35);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.login-error {
+  display: none;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.2);
+  color: #f87171;
+  font-size: 13px;
+  text-align: center;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.login-footer span {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* App wrapper transition */
+#appWrapper {
+  transition: opacity 0.4s ease;
+}
+
+/* Logout button */
+.logout-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(248,113,113,0.3);
+  background: rgba(248,113,113,0.08);
+  color: #f87171;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.logout-btn:hover {
+  background: rgba(248,113,113,0.15);
+  border-color: rgba(248,113,113,0.5);
+}
+
 body {
   font-family: 'Noto Sans SC', sans-serif;
   background: var(--bg-primary);
@@ -987,6 +1225,56 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </head>
 <body>
 
+<!-- ====== LOGIN SCREEN ====== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-bg">
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+    <div class="login-orb login-orb-3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="10" fill="url(#lg1)"/>
+          <path d="M10 18C10 14 12 10 18 10C24 10 26 14 26 18L23 17C23 14.5 21.5 13 18 13C14.5 13 13 14.5 13 17L10 18Z" fill="white" opacity="0.9"/>
+          <path d="M10 18C10 22 12 26 18 26C24 26 26 22 26 18L23 19C23 21.5 21.5 23 18 23C14.5 23 13 21.5 13 19L10 18Z" fill="white" opacity="0.6"/>
+          <defs><linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36"><stop stop-color="#ff6b35"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>
+        </svg>
+      </div>
+      <h1>FashionPilot</h1>
+      <p>亚马逊服装智能选品系统</p>
+    </div>
+    <div class="login-form">
+      <div class="login-field">
+        <label>用户名</label>
+        <input type="text" id="loginUser" placeholder="请输入用户名" autocomplete="off">
+      </div>
+      <div class="login-field">
+        <label>密码</label>
+        <div class="password-wrapper">
+          <input type="password" id="loginPass" placeholder="请输入密码" onkeypress="if(event.key==='Enter')doLogin()">
+          <button class="toggle-pass" onclick="togglePassword()" tabindex="-1">👁</button>
+        </div>
+      </div>
+      <div class="login-remember">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rememberMe" checked>
+          <span>7天内免登录</span>
+        </label>
+      </div>
+      <button class="login-btn" onclick="doLogin()">登 录</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+    <div class="login-footer">
+      <span>内部系统 · 仅授权人员可访问</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== APP WRAPPER (hidden until login) ====== -->
+<div id="appWrapper" style="display:none">
+
 <!-- ====== SIDEBAR ====== -->
 <nav class="sidebar" id="sidebar">
   <div class="logo-area">
@@ -1057,6 +1345,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         <span style="font-size:12px;color:var(--text-dim)" id="aiStatusText">Claude 已连接</span>
       </div>
       <button class="topbar-btn" onclick="refreshData()">⟳ 刷新数据</button>
+      <button class="logout-btn" onclick="logout()">退出登录</button>
     </div>
   </div>
 
@@ -1850,6 +2139,110 @@ renderBSTable();
 renderTrends();
 renderBarChart();
 renderDonut();
+</script>
+
+</div><!-- end appWrapper -->
+
+<script>
+// ====== LOGIN SYSTEM ======
+// === 账号密码设置 ===
+// 你可以在这里修改用户名和密码
+const USERS = {
+  'admin': 'maique2026',      // 管理员账号
+  'user1': 'fashion123',      // 员工账号1（可以继续添加更多）
+};
+
+const SESSION_KEY = 'fp_auth_session';
+const SESSION_DAYS = 7;
+
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const remember = document.getElementById('rememberMe').checked;
+  const errorEl = document.getElementById('loginError');
+
+  if (!user || !pass) {
+    errorEl.textContent = '请输入用户名和密码';
+    errorEl.style.display = 'block';
+    shakeCard();
+    return;
+  }
+
+  if (USERS[user] && USERS[user] === pass) {
+    // Login success
+    errorEl.style.display = 'none';
+    if (remember) {
+      const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ user, expiry }));
+    } else {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user, expiry: Date.now() + 12 * 60 * 60 * 1000 }));
+    }
+    showApp();
+  } else {
+    errorEl.textContent = '用户名或密码错误，请重试';
+    errorEl.style.display = 'block';
+    shakeCard();
+  }
+}
+
+function showApp() {
+  const login = document.getElementById('loginScreen');
+  const app = document.getElementById('appWrapper');
+  login.style.opacity = '0';
+  login.style.transform = 'scale(1.02)';
+  setTimeout(() => {
+    login.style.display = 'none';
+    app.style.display = 'block';
+    app.style.opacity = '0';
+    requestAnimationFrame(() => { app.style.opacity = '1'; });
+  }, 400);
+}
+
+function checkSession() {
+  const data = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  if (data) {
+    try {
+      const session = JSON.parse(data);
+      if (session.expiry > Date.now()) {
+        showApp();
+        return true;
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+    } catch(e) {}
+  }
+  return false;
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('appWrapper').style.display = 'none';
+  const login = document.getElementById('loginScreen');
+  login.style.display = 'flex';
+  login.style.opacity = '1';
+  login.style.transform = 'scale(1)';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+function togglePassword() {
+  const inp = document.getElementById('loginPass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function shakeCard() {
+  const card = document.querySelector('.login-card');
+  card.style.animation = 'none';
+  requestAnimationFrame(() => {
+    card.style.animation = 'shake 0.5s ease';
+  });
+}
+
+// Check session on load
+checkSession();
 </script>
 
 </body>
