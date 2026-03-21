@@ -419,15 +419,25 @@ app.post('/api/sorftime', async (req, res) => {
 
       case 'mcp_test': {
         if (!mcpKey) return res.json(fail('Sorftime Key 未配置'));
-        const result = await callMCPTool(mcpKey, 'list_tools', {});
-        res.json(ok({ tools: result }));
+        // 直接测试一个简单的product_detail调用
+        try {
+          const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: 'US', asin: 'B0CHX3PNKW' });
+          const text = extractText(result);
+          res.json(ok({ connected: true, preview: (text || '').substring(0, 300) }));
+        } catch(e) {
+          res.json(fail('MCP连接测试失败: ' + e.message));
+        }
         break;
       }
 
       case 'mcp_tools_list': {
         if (!mcpKey) return res.json(fail('Sorftime Key 未配置'));
-        const result = await callMCPTool(mcpKey, 'list_tools', {});
-        res.json(ok({ tools: result }));
+        try {
+          const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: 'US', asin: 'B0CHX3PNKW' });
+          res.json(ok({ connected: true, data: extractText(result) }));
+        } catch(e) {
+          res.json(fail('MCP测试失败: ' + e.message));
+        }
         break;
       }
 
@@ -445,9 +455,15 @@ app.post('/api/sorftime', async (req, res) => {
 
       case 'category_top': {
         if (!mcpKey) return res.json(fail('Sorftime Key 未配置'));
-        const { nodeId, site = 'US' } = params;
+        const { nodeId, site = 'US', startDate, endDate } = params;
         if (!nodeId) return res.json(fail('缺少 nodeId'));
-        const result = await callMCPTool(mcpKey, 'bsr_top100', { amzSite: site, nodeId });
+        let result;
+        // 如果指定了日期范围，用历史数据接口
+        if (startDate && endDate) {
+          result = await callMCPTool(mcpKey, 'category_report_from_history', { amzSite: site, nodeId, startDate, endDate });
+        } else {
+          result = await callMCPTool(mcpKey, 'category_report', { amzSite: site, nodeId });
+        }
         const dataText = extractText(result);
         res.json(ok({ data: dataText || result }));
         break;
@@ -455,16 +471,13 @@ app.post('/api/sorftime', async (req, res) => {
 
       case 'product_history': {
         if (!mcpKey) return res.json(fail('Sorftime Key 未配置'));
-        const { asin, site = 'US', startDate, endDate } = params;
+        const { asin, site = 'US', trendType } = params;
         if (!asin) return res.json(fail('缺少 ASIN'));
-        const toolArgs = { amzSite: site, asin };
-        if (startDate) toolArgs.startDate = startDate;
-        if (endDate) toolArgs.endDate = endDate;
         try {
-          const result = await callMCPTool(mcpKey, 'product_history_trend', toolArgs);
+          const result = await callMCPTool(mcpKey, 'product_trend', { amzSite: site, asin, productTrendType: trendType || 'SalesVolume' });
           res.json(ok({ data: extractText(result) || result }));
         } catch(e) {
-          // Fallback to product_detail if history not available
+          // Fallback to product_detail
           const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: site, asin });
           res.json(ok({ data: extractText(result) || result, note: 'history_fallback' }));
         }
@@ -475,7 +488,7 @@ app.post('/api/sorftime', async (req, res) => {
         if (!mcpKey) return res.json(fail('Sorftime Key 未配置'));
         const { nodeId, site = 'US' } = params;
         if (!nodeId) return res.json(fail('缺少 nodeId'));
-        const result = await callMCPTool(mcpKey, 'market_analysis', { amzSite: site, nodeId });
+        const result = await callMCPTool(mcpKey, 'category_trend', { amzSite: site, nodeId, trendIndex: 'SalesCount' });
         const dataText = extractText(result);
         // 保存调研数据
         if (result && typeof result === 'object') {
