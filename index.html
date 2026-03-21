@@ -291,6 +291,22 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
 
+/* ============ CROSS-CATEGORY TAGS ============ */
+.cat-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all var(--transition); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); }
+.cat-tag:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
+.cat-tag.active { background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); }
+.cat-tag .tag-count { font-size: 11px; font-family: 'Space Mono', monospace; opacity: 0.7; }
+.category-section { margin-bottom: 16px; }
+.category-section .cat-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--bg-elevated); border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); border-bottom: none; cursor: pointer; transition: background 0.2s; }
+.category-section .cat-header:hover { background: #e8eaf0; }
+.category-section .cat-header h4 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.category-section .cat-header .cat-stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-dim); font-family: 'Space Mono', monospace; }
+.category-section .cat-body { border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); background: var(--bg-card); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.cat-toggle { font-size: 14px; transition: transform 0.2s; }
+.cat-toggle.open { transform: rotate(180deg); }
+.highlight-row { background: rgba(232,93,42,0.04); }
+.highlight-row td:first-child { border-left: 3px solid var(--accent-orange); }
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .chart-area { grid-template-columns: 1fr; } .products-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main { margin-left: 0; } .stats-grid { grid-template-columns: 1fr; } .products-grid { grid-template-columns: 1fr; } .topbar { padding: 12px 16px; } .content { padding: 16px; } .kanban-board { flex-direction: column; } .kanban-column { min-width: 100%; max-width: 100%; } }
@@ -364,7 +380,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="nav-section">
     <div class="nav-label">数据中心</div>
     <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> 数据总览</div>
-    <div class="nav-item" data-page="bestseller"><span class="icon">🏆</span> Best Seller 分析</div>
+    <div class="nav-item" data-page="bestseller"><span class="icon">🏆</span> 跨类目选品</div>
     <div class="nav-item" data-page="trends"><span class="icon">🔥</span> 站外趋势洞察</div>
 
     <div class="nav-label">企划与选品</div>
@@ -438,15 +454,39 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 
     <!-- ====== PAGE: BESTSELLER ====== -->
     <div class="page" id="page-bestseller">
-      <div class="filter-bar">
-        <select class="filter-select" id="bsSite"><option value="US">🇺🇸 美国站</option><option value="UK">🇬🇧 英国站</option><option value="DE">🇩🇪 德国站</option><option value="JP">🇯🇵 日本站</option></select>
-        <input class="filter-input" id="bsAsinInput" placeholder="🔍 输入 ASIN 查询...">
-        <button class="btn-primary" onclick="lookupASIN()">🔍 搜索</button>
-      </div>
+      <!-- Step 1: 输入核心选品点 -->
       <div class="section-panel">
-        <div class="section-header"><h3>🏆 Best Seller 排行 — Women's Clothing</h3></div>
-        <div class="section-body" style="padding:0">
-          <table class="data-table"><thead><tr><th style="width:50px">排名</th><th>商品信息</th><th>价格</th><th>评分</th><th>评论</th><th>月销量</th><th>趋势</th><th>上架天数</th></tr></thead><tbody id="bsTableBody"></tbody></table>
+        <div class="section-header"><h3>🎯 跨类目选品分析</h3></div>
+        <div class="section-body">
+          <p style="color:var(--text-dim);font-size:14px;margin-bottom:16px">以一个核心选品点（如"孕妇裤"）为中心，自动关联所有相关类目，查看每个类目 Top10 产品数据，快速发现跨类目机会</p>
+          <div class="filter-bar" style="margin-bottom:0">
+            <input class="filter-input" id="bsCoreKeyword" placeholder="🎯 输入核心选品点，如：孕妇裤、瑜伽裤、工装裤..." style="min-width:300px;font-size:15px;padding:12px 16px">
+            <select class="filter-select" id="bsSite"><option value="US">🇺🇸 美国站</option><option value="UK">🇬🇧 英国站</option><option value="DE">🇩🇪 德国站</option><option value="JP">🇯🇵 日本站</option></select>
+            <button class="btn-primary" onclick="startCrossCategorySearch()" style="padding:12px 24px;font-size:15px">🔍 开始跨类目分析</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: 关联类目标签 -->
+      <div id="bsCategoryTags" style="display:none;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:600;color:var(--text-primary)">📂 关联类目：</span>
+          <div id="bsTagsContainer" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-dim)" id="bsCategorySummary"></div>
+      </div>
+
+      <!-- Step 3: 各类目Top10数据展示 -->
+      <div id="bsCategoryResults"></div>
+
+      <!-- ASIN 快速查询 -->
+      <div class="section-panel" style="margin-top:20px">
+        <div class="section-header"><h3>🔍 ASIN 快速查询</h3></div>
+        <div class="section-body">
+          <div class="filter-bar" style="margin-bottom:0">
+            <input class="filter-input" id="bsAsinInput" placeholder="输入 ASIN 编号，如 B0CK7X2M9P" style="min-width:280px">
+            <button class="btn-primary" onclick="lookupASIN()">🔍 查询并分析</button>
+          </div>
         </div>
       </div>
     </div>
@@ -728,7 +768,7 @@ const STATUS_COLORS = { CONCEPT:'#a78bfa', IN_DEV:'#fbbf24', SAMPLING:'#ff6b35',
 // ====== NAV ======
 const pageTitles = {
   dashboard: ['数据总览', '亚马逊服装类目实时数据监控'],
-  bestseller: ['Best Seller 分析', '追踪热销榜单，发现爆款规律'],
+  bestseller: ['跨类目选品分析', '以点打面，快速发现跨类目机会'],
   trends: ['站外趋势洞察', '社交媒体与时尚趋势聚合分析'],
   plan: ['季度企划', 'Line Plan / SKU 矩阵 / 品类分配'],
   research: ['选品调研', 'Sorftime 数据验证 / 概念评分'],
@@ -755,7 +795,7 @@ document.querySelectorAll('.nav-item:not(.disabled)').forEach(item => {
     if (page === 'samples') loadSamples();
     if (page === 'kanban') loadKanban();
     if (page === 'plan') loadPlans();
-    if (page === 'bestseller') renderBSTable();
+    if (page === 'bestseller') {} // Cross-category view loads on demand
     if (page === 'trends') renderTrends();
     // Mobile: close sidebar
     document.getElementById('sidebar').classList.remove('open');
@@ -1065,14 +1105,167 @@ async function lookupASIN() {
   } catch (e) { document.getElementById(lid)?.remove(); addChatMsg('ai', '⚠️ ' + e.message); }
 }
 
-// ====== STATIC DEMO DATA ======
-const bsData = [
-  { rank:1, name:"Floerns 碎花V领长袖连衣裙", asin:"B0CK7X2M9P", price:"$23.99", rating:"4.5", reviews:"12,847", sales:"8,200+", trend:"hot", days:142, emoji:"👗" },
-  { rank:2, name:"BTFBM 修身褶皱连衣裙", asin:"B0CJ9RKLM3", price:"$32.99", rating:"4.6", reviews:"9,423", sales:"6,800+", trend:"rising", days:89, emoji:"👗" },
-  { rank:3, name:"MEROKEETY 针织波西米亚长裙", asin:"B0CHNP4TW2", price:"$35.99", rating:"4.4", reviews:"7,156", sales:"5,500+", trend:"stable", days:203, emoji:"👗" },
-  { rank:4, name:"ANRABESS 宽松吊带连衣裙", asin:"B0CG7FXMR1", price:"$27.99", rating:"4.3", reviews:"15,302", sales:"5,100+", trend:"stable", days:367, emoji:"👗" },
-  { rank:5, name:"PRETTYGARDEN 方领泡泡袖裙", asin:"B0CDFR8KN5", price:"$36.99", rating:"4.5", reviews:"4,218", sales:"4,600+", trend:"rising", days:56, emoji:"👗" },
-];
+// ====== CROSS-CATEGORY BESTSELLER SYSTEM ======
+// 预设的跨类目关联映射（核心关键词 → 关联类目列表）
+const CROSS_CATEGORY_MAP = {
+  '孕妇裤': [
+    { name: '女士牛仔裤', nodeId: '2348876011', icon: '👖', keyInsight: '看牛仔裤的版型和弹力设计' },
+    { name: '女士休闲裤', nodeId: '2348877011', icon: '👖', keyInsight: '看腰部松紧和舒适面料' },
+    { name: '女士运动裤', nodeId: '2348878011', icon: '🏃', keyInsight: '看弹力面料和运动剪裁' },
+    { name: '女士职业裤', nodeId: '2348879011', icon: '💼', keyInsight: '看正式场合的孕期穿搭需求' },
+    { name: '男士牛仔裤', nodeId: '2348880011', icon: '👖', keyInsight: '看宽松版型和耐穿面料趋势' },
+    { name: '孕妇装专区', nodeId: '2348881011', icon: '🤰', keyInsight: '直接竞品，看价格和评论痛点' },
+  ],
+  '瑜伽裤': [
+    { name: '女士运动紧身裤', nodeId: '2348882011', icon: '🏃', keyInsight: '核心竞争类目' },
+    { name: '女士休闲裤', nodeId: '2348877011', icon: '👖', keyInsight: '看休闲穿搭趋势' },
+    { name: '运动内衣', nodeId: '2348883011', icon: '👙', keyInsight: '套装搭配机会' },
+    { name: '女士短裤', nodeId: '2348884011', icon: '🩳', keyInsight: '夏季替代品趋势' },
+    { name: '男士运动裤', nodeId: '2348885011', icon: '🏋️', keyInsight: '看男性瑜伽裤需求' },
+    { name: '大码运动裤', nodeId: '2348886011', icon: '➕', keyInsight: '大码市场机会' },
+  ],
+  '工装裤': [
+    { name: '男士工装裤', nodeId: '2348887011', icon: '🔧', keyInsight: '核心竞争类目' },
+    { name: '男士休闲裤', nodeId: '2348888011', icon: '👖', keyInsight: '看休闲工装融合趋势' },
+    { name: '女士工装裤', nodeId: '2348889011', icon: '👩‍🔧', keyInsight: '女性工装风崛起' },
+    { name: '男士牛仔裤', nodeId: '2348880011', icon: '👖', keyInsight: '看耐穿面料趋势' },
+    { name: '户外徒步裤', nodeId: '2348890011', icon: '🏔️', keyInsight: '功能性面料参考' },
+    { name: '男士短裤', nodeId: '2348891011', icon: '🩳', keyInsight: '夏季工装短裤需求' },
+  ],
+};
+
+// 为未预设的关键词生成通用关联类目
+function generateCrossCategories(keyword) {
+  if (CROSS_CATEGORY_MAP[keyword]) return CROSS_CATEGORY_MAP[keyword];
+  // 通用裤子类目
+  if (keyword.includes('裤')) return [
+    { name: '女士牛仔裤', nodeId: '2348876011', icon: '👖', keyInsight: '女装牛仔裤市场' },
+    { name: '女士休闲裤', nodeId: '2348877011', icon: '👖', keyInsight: '休闲裤市场' },
+    { name: '男士裤装', nodeId: '2348880011', icon: '👖', keyInsight: '男装裤子市场' },
+    { name: '运动裤', nodeId: '2348878011', icon: '🏃', keyInsight: '运动裤市场' },
+    { name: '儿童裤', nodeId: '2348892011', icon: '👶', keyInsight: '儿童裤子市场' },
+    { name: '大码裤装', nodeId: '2348893011', icon: '➕', keyInsight: '大码裤子市场' },
+  ];
+  // 通用服装类目
+  return [
+    { name: '女装', nodeId: '7141123011', icon: '👗', keyInsight: '女装大类' },
+    { name: '男装', nodeId: '7141124011', icon: '👔', keyInsight: '男装大类' },
+    { name: '运动服装', nodeId: '7141125011', icon: '🏃', keyInsight: '运动品类' },
+    { name: '童装', nodeId: '7141126011', icon: '👶', keyInsight: '童装市场' },
+  ];
+}
+
+// 每个类目的模拟Top10数据（实际部署后可接入Sorftime真实数据）
+function generateCategoryTopData(categoryName, keyword) {
+  const brands = ['Levi\'s', 'BTFBM', 'Amazon Essentials', 'Floerns', 'ANRABESS', 'Dokotoo', 'PRETTYGARDEN', 'MEROKEETY', 'ZESICA', 'Hanes'];
+  const trends = ['hot', 'rising', 'stable', 'new'];
+  return Array.from({length: 10}, (_, i) => ({
+    rank: i + 1,
+    name: `${brands[i]} ${categoryName}${keyword ? ' ' + keyword + '款' : ''}`,
+    asin: 'B0' + Math.random().toString(36).substring(2, 10).toUpperCase(),
+    price: (15 + Math.random() * 35).toFixed(2),
+    rating: (3.8 + Math.random() * 1.2).toFixed(1),
+    reviews: Math.floor(500 + Math.random() * 20000).toLocaleString(),
+    sales: Math.floor(1000 + Math.random() * 10000).toLocaleString() + '+',
+    trend: trends[Math.floor(Math.random() * trends.length)],
+    days: Math.floor(20 + Math.random() * 400),
+    isRelevant: i < 3 || Math.random() > 0.6, // 标记与核心词高度相关的产品
+  }));
+}
+
+let currentCoreKeyword = '';
+let currentCategories = [];
+let activeCatIndex = -1; // -1 = 显示全部
+
+function startCrossCategorySearch() {
+  const keyword = document.getElementById('bsCoreKeyword').value.trim();
+  if (!keyword) { alert('请输入核心选品点'); return; }
+  currentCoreKeyword = keyword;
+  currentCategories = generateCrossCategories(keyword);
+
+  // 显示类目标签
+  document.getElementById('bsCategoryTags').style.display = 'block';
+  document.getElementById('bsTagsContainer').innerHTML =
+    `<span class="cat-tag active" onclick="filterBSCategory(-1)">全部 <span class="tag-count">${currentCategories.length}个类目</span></span>` +
+    currentCategories.map((cat, i) =>
+      `<span class="cat-tag" onclick="filterBSCategory(${i})">${cat.icon} ${cat.name}</span>`
+    ).join('');
+  document.getElementById('bsCategorySummary').textContent =
+    `以「${keyword}」为核心，关联 ${currentCategories.length} 个相关类目，共展示 ${currentCategories.length * 10} 个 Top 产品`;
+
+  activeCatIndex = -1;
+  renderCrossCategoryResults();
+}
+
+function filterBSCategory(index) {
+  activeCatIndex = index;
+  // 更新标签激活状态
+  document.querySelectorAll('#bsTagsContainer .cat-tag').forEach((tag, i) => {
+    tag.classList.toggle('active', i === index + 1);
+  });
+  if (index === -1) document.querySelector('#bsTagsContainer .cat-tag').classList.add('active');
+  renderCrossCategoryResults();
+}
+
+function renderCrossCategoryResults() {
+  const container = document.getElementById('bsCategoryResults');
+  const categoriesToShow = activeCatIndex === -1 ? currentCategories : [currentCategories[activeCatIndex]];
+
+  container.innerHTML = categoriesToShow.map((cat, catIdx) => {
+    const topData = generateCategoryTopData(cat.name, currentCoreKeyword);
+    const avgPrice = (topData.reduce((s, d) => s + parseFloat(d.price), 0) / topData.length).toFixed(2);
+    const avgRating = (topData.reduce((s, d) => s + parseFloat(d.rating), 0) / topData.length).toFixed(1);
+    const realCatIdx = activeCatIndex === -1 ? catIdx : activeCatIndex;
+
+    return `<div class="category-section">
+      <div class="cat-header" onclick="toggleCatBody(this)">
+        <h4>${cat.icon} ${cat.name} <span style="font-size:12px;font-weight:400;color:var(--text-dim);margin-left:8px">💡 ${cat.keyInsight}</span></h4>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="cat-stats">
+            <span>均价 $${avgPrice}</span>
+            <span>均分 ⭐${avgRating}</span>
+            <span>Top10</span>
+          </div>
+          <span class="cat-toggle open">▼</span>
+        </div>
+      </div>
+      <div class="cat-body">
+        <table class="data-table"><thead><tr>
+          <th style="width:45px">排名</th><th>商品信息</th><th>价格</th><th>评分</th><th>评论</th><th>月销量</th><th>趋势</th><th>上架天数</th><th>操作</th>
+        </tr></thead><tbody>
+        ${topData.map(d => `<tr class="${d.isRelevant ? 'highlight-row' : ''}">
+          <td><span class="rank-badge rank-${d.rank<=3?d.rank:'other'}">${d.rank}</span></td>
+          <td><div class="product-cell"><div class="product-img">${cat.icon}</div><div><div class="product-name">${d.name}</div><div class="product-asin">${d.asin}</div></div></div></td>
+          <td style="font-family:'Space Mono';color:var(--accent-orange);font-weight:700">$${d.price}</td>
+          <td>⭐ ${d.rating}</td>
+          <td style="font-family:'Space Mono'">${d.reviews}</td>
+          <td style="font-family:'Space Mono';font-weight:600">${d.sales}</td>
+          <td><span class="trend-tag trend-${d.trend}">${{hot:'🔥 热销',rising:'📈 上升',stable:'➡ 稳定',new:'✨ 新品'}[d.trend]}</span></td>
+          <td style="font-family:'Space Mono'">${d.days}天</td>
+          <td><button class="btn-secondary btn-sm" onclick="analyzeFromBS('${d.asin}')">AI分析</button></td>
+        </tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCatBody(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.cat-toggle');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    toggle.classList.add('open');
+  } else {
+    body.style.display = 'none';
+    toggle.classList.remove('open');
+  }
+}
+
+function analyzeFromBS(asin) {
+  document.getElementById('bsAsinInput').value = asin;
+  lookupASIN();
+}
 
 const trendData = [
   { name:"Coquette蝴蝶结元素", source:"TikTok", views:"2.8亿", trend:"hot", emoji:"🎀", desc:"蝴蝶结、蕾丝、粉色系少女风" },
@@ -1082,19 +1275,6 @@ const trendData = [
   { name:"运动Gorpcore风", source:"Instagram", views:"5,400万", trend:"rising", emoji:"🏔️", desc:"户外机能风、防水面料、拼接设计" },
   { name:"Blokecore球衣风", source:"TikTok", views:"4,100万", trend:"new", emoji:"⚽", desc:"复古球衣、条纹、宽松剪裁" },
 ];
-
-function renderBSTable() {
-  document.getElementById('bsTableBody').innerHTML = bsData.map(d => `<tr>
-    <td><span class="rank-badge rank-${d.rank<=3?d.rank:'other'}">${d.rank}</span></td>
-    <td><div class="product-cell"><div class="product-img">${d.emoji}</div><div><div class="product-name">${d.name}</div><div class="product-asin">${d.asin}</div></div></div></td>
-    <td style="font-family:'Space Mono';color:var(--accent-orange);font-weight:700">${d.price}</td>
-    <td>⭐ ${d.rating}</td>
-    <td style="font-family:'Space Mono'">${d.reviews}</td>
-    <td style="font-family:'Space Mono';font-weight:600">${d.sales}</td>
-    <td><span class="trend-tag trend-${d.trend}">${{hot:'🔥 热销',rising:'📈 上升',stable:'➡ 稳定',new:'✨ 新品'}[d.trend]}</span></td>
-    <td style="font-family:'Space Mono'">${d.days}天</td>
-  </tr>`).join('');
-}
 
 function renderTrends() {
   document.getElementById('trendsGrid').innerHTML = trendData.map(d => `<div class="product-card">
@@ -1134,7 +1314,7 @@ async function checkAPIHealth() {
 }
 
 // ====== INIT ======
-renderBSTable();
+// Init
 renderTrends();
 loadDashboard();
 setTimeout(checkAPIHealth, 1000);
