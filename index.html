@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FashionPilot — 亚马逊服装智能选品系统</title>
+<title>FashionPilot</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e85d2a'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold' font-size='18'%3EF%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -74,25 +75,25 @@ body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg-primary); c
 .logout-btn:hover { background: #fee2e2; border-color: #fca5a5; }
 
 /* ============ SIDEBAR ============ */
-.sidebar { position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; transition: transform var(--transition); overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.04); }
-.logo-area { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
-.logo-area h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; background: linear-gradient(135deg, var(--accent-orange), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
-.logo-area p { font-size: 11px; color: var(--text-dim); margin-top: 4px; font-family: 'Space Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+.sidebar { position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: #1a1d2e; border-right: none; display: flex; flex-direction: column; z-index: 100; transition: transform var(--transition); overflow-y: auto; box-shadow: 2px 0 12px rgba(0,0,0,0.1); }
+.logo-area { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.logo-area h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; background: linear-gradient(135deg, #ff8c56, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+.logo-area p { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; font-family: 'Space Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
 .nav-section { padding: 16px 16px; flex: 1; }
-.nav-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; padding: 0 8px; margin-bottom: 8px; margin-top: 20px; font-family: 'Space Mono', monospace; }
+.nav-label { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; padding: 0 8px; margin-bottom: 8px; margin-top: 20px; font-family: 'Space Mono', monospace; }
 .nav-label:first-child { margin-top: 0; }
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); margin-bottom: 2px; font-size: 14px; color: var(--text-secondary); position: relative; }
-.nav-item:hover { background: rgba(0,0,0,0.04); color: var(--text-primary); }
-.nav-item.active { background: var(--accent-orange-dim); color: var(--accent-orange); font-weight: 500; }
-.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: var(--accent-orange); border-radius: 0 3px 3px 0; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); margin-bottom: 2px; font-size: 14px; color: rgba(255,255,255,0.6); position: relative; }
+.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+.nav-item.active { background: rgba(232,93,42,0.2); color: #ff8c56; font-weight: 500; }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: #ff8c56; border-radius: 0 3px 3px 0; }
 .nav-item .icon { width: 20px; text-align: center; font-size: 15px; }
-.nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
-.nav-item .badge { margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(0,0,0,0.05); color: var(--text-dim); font-family: 'Space Mono', monospace; }
-.nav-item .count-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: var(--accent-orange-dim); color: var(--accent-orange); font-family: 'Space Mono', monospace; font-weight: 700; min-width: 20px; text-align: center; }
-.ai-selector { padding: 16px; border-top: 1px solid var(--border); }
-.ai-selector-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Space Mono', monospace; }
-.ai-toggle { display: flex; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 3px; gap: 3px; }
-.ai-option { flex: 1; padding: 8px 0; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all var(--transition); color: var(--text-dim); }
+.nav-item.disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-item .badge { margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); font-family: 'Space Mono', monospace; }
+.nav-item .count-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(232,93,42,0.25); color: #ff8c56; font-family: 'Space Mono', monospace; font-weight: 700; min-width: 20px; text-align: center; }
+.ai-selector { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.ai-selector-label { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Space Mono', monospace; }
+.ai-toggle { display: flex; background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 3px; gap: 3px; }
+.ai-option { flex: 1; padding: 8px 0; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all var(--transition); color: rgba(255,255,255,0.4); }
 .ai-option.active-claude { background: linear-gradient(135deg, #d97706, #f59e0b); color: #000; }
 .ai-option.active-deepseek { background: linear-gradient(135deg, #2563eb, #4ecdc4); color: #fff; }
 
@@ -328,7 +329,6 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         </svg>
       </div>
       <h1>FashionPilot</h1>
-      <p>亚马逊服装智能选品系统</p>
     </div>
     <div class="login-form">
       <div class="login-field">
