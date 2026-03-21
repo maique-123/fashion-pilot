@@ -1240,8 +1240,10 @@ async function fetchRealCategoryData() {
     const cat = currentCategories[i];
     loadingProgress.textContent = `正在获取: ${cat.name} (${i+1}/${currentCategories.length})`;
     try {
-      // 获取类目Top数据
-      const r = await sfApi('category_top', { nodeId: cat.nodeId, site });
+      // 获取类目Top数据（如果有日期就传日期）
+      const catParams = { nodeId: cat.nodeId, site };
+      if (startDate && endDate) { catParams.startDate = startDate; catParams.endDate = endDate; }
+      const r = await sfApi('category_top', catParams);
       if (r.success && r.data) {
         categoryDataCache[cat.nodeId] = { topData: r.data, hasHistory: false };
         loaded++;
