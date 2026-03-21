@@ -8,7 +8,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const db = require('./database');
-const fetch = require('node-fetch');
+// Node.js 18+ 内置全局 fetch，无需 node-fetch
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -235,6 +235,16 @@ app.get('/api/products/:userId', (req, res) => {
   res.json(ok({ queries }));
 });
 
+// ====== 带超时的 fetch（Node.js 18 内置 fetch 不支持 timeout 参数）======
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { ...options, signal: controller.signal });
+    return resp;
+  } finally { clearTimeout(timer); }
+}
+
 // ====== Sorftime MCP 核心调用 ======
 async function callMCPTool(key, toolName, args) {
   
@@ -242,7 +252,7 @@ async function callMCPTool(key, toolName, args) {
 
   // 先尝试直接调用
   try {
-    const resp = await fetch(mcpUrl, {
+    const resp = await fetchWithTimeout(mcpUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -250,33 +260,30 @@ async function callMCPTool(key, toolName, args) {
         method: 'tools/call',
         params: { name: toolName, arguments: args }
       }),
-      timeout: 30000,
-    });
+    }, 30000);
     const data = await resp.json();
     if (data.result) return data.result;
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   } catch (e) {
     // 尝试初始化握手
     try {
-      const initResp = await fetch(mcpUrl, {
+      const initResp = await fetchWithTimeout(mcpUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'FashionPilot', version: '2.0' } } }),
-        timeout: 15000,
-      });
+      }, 15000);
       const sessionId = initResp.headers.get('mcp-session-id');
       const headers = { 'Content-Type': 'application/json' };
       if (sessionId) headers['mcp-session-id'] = sessionId;
 
       // 发送 initialized 通知
-      await fetch(mcpUrl, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }), timeout: 10000 });
+      await fetchWithTimeout(mcpUrl, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) }, 10000);
 
       // 调用工具
-      const toolResp = await fetch(mcpUrl, {
+      const toolResp = await fetchWithTimeout(mcpUrl, {
         method: 'POST', headers,
         body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: { name: toolName, arguments: args } }),
-        timeout: 30000,
-      });
+      }, 30000);
       const toolData = await toolResp.json();
       if (toolData.result) return toolData.result;
       throw new Error(toolData.error?.message || 'MCP 调用失败');
@@ -392,23 +399,21 @@ app.post('/api/sorftime', async (req, res) => {
 
         if (model === 'deepseek' && deepseekKey) {
           
-          const r = await fetch('https://api.deepseek.com/chat/completions', {
+          const r = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${deepseekKey}` },
             body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: message }], temperature: 0.7, max_tokens: 4096 }),
-            timeout: 60000,
-          });
+          }, 60000);
           const data = await r.json();
           reply = data.choices?.[0]?.message?.content || 'AI 无响应';
           usedModel = 'DeepSeek';
         } else if (openrouterKey) {
           
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          const r = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openrouterKey}` },
             body: JSON.stringify({ model: 'anthropic/claude-sonnet-4', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: message }], temperature: 0.7, max_tokens: 4096 }),
-            timeout: 60000,
-          });
+          }, 60000);
           const data = await r.json();
           reply = data.choices?.[0]?.message?.content || 'AI 无响应';
           usedModel = 'Claude';
@@ -451,22 +456,20 @@ app.post('/api/sorftime', async (req, res) => {
         
 
         if (model === 'deepseek' && deepseekKey) {
-          const r = await fetch('https://api.deepseek.com/chat/completions', {
+          const r = await fetchWithTimeout('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${deepseekKey}` },
             body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: analysisPrompt }], temperature: 0.7, max_tokens: 4096 }),
-            timeout: 60000,
-          });
+          }, 60000);
           const data = await r.json();
           reply = data.choices?.[0]?.message?.content || 'AI 无响应';
           usedModel = 'DeepSeek';
         } else if (openrouterKey) {
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          const r = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openrouterKey}` },
             body: JSON.stringify({ model: 'anthropic/claude-sonnet-4', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: analysisPrompt }], temperature: 0.7, max_tokens: 4096 }),
-            timeout: 60000,
-          });
+          }, 60000);
           const data = await r.json();
           reply = data.choices?.[0]?.message?.content || 'AI 无响应';
           usedModel = 'Claude';
