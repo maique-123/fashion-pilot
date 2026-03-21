@@ -235,62 +235,172 @@ app.get('/api/products/:userId', (req, res) => {
   res.json(ok({ queries }));
 });
 
-// ====== 带超时的 fetch（Node.js 18 内置 fetch 不支持 timeout 参数）======
-async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+// ====== SSE 流式响应解析（Sorftime 返回 text/event-stream 格式）======
+function parseSSEMessages(text) {
+  const messages = [];
+  const events = text.split(/\n\n|\r\n\r\n/);
+  for (const event of events) {
+    const lines = event.split(/\n|\r\n/);
+    let data = '';
+    for (const line of lines) {
+      if (line.startsWith('event:') || line.startsWith('id:') || line.startsWith('retry:')) continue;
+      if (line.startsWith('data:')) {
+        const val = line.slice(5).trimStart();
+        if (val === '[DONE]') continue;
+        data += val;
+      }
+    }
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) messages.push(...parsed);
+        else messages.push(parsed);
+      } catch (e) { /* skip non-JSON */ }
+    }
+  }
+  return messages;
+}
+
+// ====== MCP POST 请求（支持 JSON 和 SSE 两种响应格式）======
+async function mcpPost(url, body, sessionId) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/event-stream',
+  };
+  if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 50000);
+
+  let resp;
+  try {
+    resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
+  } catch (e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') throw new Error(`MCP请求超时(50s) - method: ${body.method}`);
+    throw new Error(`MCP网络错误: ${e.message}`);
+  }
+  clearTimeout(timeout);
+
+  const newSession = resp.headers.get('mcp-session-id') || sessionId;
+  const ct = (resp.headers.get('content-type') || '').toLowerCase();
+  const raw = await resp.text();
+
+  // 通知类请求返回 202 无内容
+  if (resp.status === 202 || !raw.trim()) {
+    return { data: null, sessionId: newSession, ok: true };
+  }
+  if (!resp.ok) {
+    return { data: null, sessionId: newSession, ok: false, error: `HTTP ${resp.status}: ${raw.substring(0, 500)}` };
+  }
+
+  let result = null;
+
+  // SSE 流式响应
+  if (ct.includes('text/event-stream')) {
+    const msgs = parseSSEMessages(raw);
+    for (const m of msgs) {
+      if (m.id === body.id) { result = m; break; }
+      if (m.result !== undefined || m.error !== undefined) result = m;
+    }
+    if (!result && msgs.length > 0) result = msgs[msgs.length - 1];
+  } else {
+    // JSON 响应
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        result = parsed.find(m => m.id === body.id) || parsed[parsed.length - 1];
+      } else {
+        result = parsed;
+      }
+    } catch (e) {
+      return { data: null, sessionId: newSession, ok: false, error: `JSON解析失败: ${raw.substring(0, 300)}` };
+    }
+  }
+
+  return { data: result, sessionId: newSession, ok: resp.ok };
+}
+
+// ====== Sorftime MCP 核心调用（先直接调用，失败则完整握手，支持两个协议版本）======
+async function callMCPTool(key, toolName, args) {
+  const mcpUrl = `https://mcp.sorftime.com?key=${key}`;
+
+  // 先尝试直接调用（跳过握手，更快）
+  try {
+    const direct = await mcpPost(mcpUrl, {
+      jsonrpc: '2.0', id: 'tool-1', method: 'tools/call',
+      params: { name: toolName, arguments: args }
+    }, null);
+
+    if (direct.ok && direct.data && !direct.data.error) {
+      return direct.data?.result || direct.data;
+    }
+    if (direct.data?.error) console.log(`Direct call error for ${toolName}:`, JSON.stringify(direct.data.error));
+    if (direct.error) console.log(`Direct call HTTP error for ${toolName}:`, direct.error);
+  } catch (e) {
+    console.log(`Direct call exception for ${toolName}:`, e.message);
+  }
+
+  // Fallback: 完整握手 — 尝试两个协议版本
+  const protocolVersions = ['2025-03-26', '2024-11-05'];
+  let lastError = null;
+
+  for (const protoVer of protocolVersions) {
+    try {
+      const init = await mcpPost(mcpUrl, {
+        jsonrpc: '2.0', id: 'init-1', method: 'initialize',
+        params: { protocolVersion: protoVer, capabilities: {}, clientInfo: { name: 'FashionPilot', version: '2.0' } }
+      }, null);
+
+      if (!init.ok || !init.sessionId) {
+        lastError = `Initialize失败(proto=${protoVer}): ${init.error || '无sessionId'}`;
+        continue;
+      }
+
+      const sid = init.sessionId;
+
+      // 发送 initialized 通知
+      await mcpPost(mcpUrl, { jsonrpc: '2.0', method: 'notifications/initialized' }, sid);
+
+      // 调用工具
+      const tool = await mcpPost(mcpUrl, {
+        jsonrpc: '2.0', id: 'tool-1', method: 'tools/call',
+        params: { name: toolName, arguments: args }
+      }, sid);
+
+      if (tool.data?.error) {
+        lastError = `Tool error(proto=${protoVer}): ${JSON.stringify(tool.data.error)}`;
+        continue;
+      }
+
+      return tool.data?.result || tool.data;
+    } catch (e) {
+      lastError = `Handshake exception(proto=${protoVer}): ${e.message}`;
+      continue;
+    }
+  }
+
+  throw new Error(lastError || 'MCP所有协议版本均失败');
+}
+
+// ====== 从 MCP 结果中提取文本 ======
+function extractText(result) {
+  if (!result) return null;
+  if (result.content && Array.isArray(result.content)) {
+    return result.content.filter(c => c.type === 'text').map(c => c.text).join('\n');
+  }
+  if (typeof result === 'string') return result;
+  return JSON.stringify(result);
+}
+
+// ====== 带超时的 fetch（用于 AI API 调用）======
+async function fetchWithTimeout(url, options = {}, timeoutMs = 60000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const resp = await fetch(url, { ...options, signal: controller.signal });
     return resp;
   } finally { clearTimeout(timer); }
-}
-
-// ====== Sorftime MCP 核心调用 ======
-async function callMCPTool(key, toolName, args) {
-  
-  const mcpUrl = `https://mcp.sorftime.com?key=${key}`;
-
-  // 先尝试直接调用
-  try {
-    const resp = await fetchWithTimeout(mcpUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: Date.now(),
-        method: 'tools/call',
-        params: { name: toolName, arguments: args }
-      }),
-    }, 30000);
-    const data = await resp.json();
-    if (data.result) return data.result;
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  } catch (e) {
-    // 尝试初始化握手
-    try {
-      const initResp = await fetchWithTimeout(mcpUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'FashionPilot', version: '2.0' } } }),
-      }, 15000);
-      const sessionId = initResp.headers.get('mcp-session-id');
-      const headers = { 'Content-Type': 'application/json' };
-      if (sessionId) headers['mcp-session-id'] = sessionId;
-
-      // 发送 initialized 通知
-      await fetchWithTimeout(mcpUrl, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) }, 10000);
-
-      // 调用工具
-      const toolResp = await fetchWithTimeout(mcpUrl, {
-        method: 'POST', headers,
-        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: { name: toolName, arguments: args } }),
-      }, 30000);
-      const toolData = await toolResp.json();
-      if (toolData.result) return toolData.result;
-      throw new Error(toolData.error?.message || 'MCP 调用失败');
-    } catch (e2) {
-      throw new Error(`MCP 调用失败: ${e2.message}`);
-    }
-  }
 }
 
 // ====== 主 API 端点 (/api/sorftime) ======
@@ -326,7 +436,7 @@ app.post('/api/sorftime', async (req, res) => {
         const { asin, site = 'US' } = params;
         if (!asin) return res.json(fail('缺少 ASIN'));
         const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: site, asin });
-        const dataStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+        const dataStr = extractText(result) || (typeof result === 'string' ? result : JSON.stringify(result, null, 2));
         // 存储查询记录
         db.saveProductQuery(params.userId || 'system', asin, site, dataStr.substring(0, 5000));
         res.json(ok({ data: dataStr }));
@@ -338,7 +448,8 @@ app.post('/api/sorftime', async (req, res) => {
         const { nodeId, site = 'US' } = params;
         if (!nodeId) return res.json(fail('缺少 nodeId'));
         const result = await callMCPTool(mcpKey, 'bsr_top100', { amzSite: site, nodeId });
-        res.json(ok({ data: result }));
+        const dataText = extractText(result);
+        res.json(ok({ data: dataText || result }));
         break;
       }
 
@@ -351,11 +462,11 @@ app.post('/api/sorftime', async (req, res) => {
         if (endDate) toolArgs.endDate = endDate;
         try {
           const result = await callMCPTool(mcpKey, 'product_history_trend', toolArgs);
-          res.json(ok({ data: result }));
+          res.json(ok({ data: extractText(result) || result }));
         } catch(e) {
           // Fallback to product_detail if history not available
           const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: site, asin });
-          res.json(ok({ data: result, note: 'history_fallback' }));
+          res.json(ok({ data: extractText(result) || result, note: 'history_fallback' }));
         }
         break;
       }
@@ -365,15 +476,16 @@ app.post('/api/sorftime', async (req, res) => {
         const { nodeId, site = 'US' } = params;
         if (!nodeId) return res.json(fail('缺少 nodeId'));
         const result = await callMCPTool(mcpKey, 'market_analysis', { amzSite: site, nodeId });
+        const dataText = extractText(result);
         // 保存调研数据
         if (result && typeof result === 'object') {
           db.saveSorftimeResearch({
             slot_id: params.slot_id || '',
             keyword: params.keyword || nodeId,
-            raw_data: result,
+            raw_data: dataText || result,
           });
         }
-        res.json(ok({ data: result }));
+        res.json(ok({ data: dataText || result }));
         break;
       }
 
@@ -382,7 +494,7 @@ app.post('/api/sorftime', async (req, res) => {
         const { tool, args } = params;
         if (!tool) return res.json(fail('缺少工具名'));
         const result = await callMCPTool(mcpKey, tool, args || {});
-        res.json(ok({ data: result }));
+        res.json(ok({ data: extractText(result) || result }));
         break;
       }
 
@@ -439,7 +551,7 @@ app.post('/api/sorftime', async (req, res) => {
         if (mcpKey) {
           try {
             const result = await callMCPTool(mcpKey, 'product_detail', { amzSite: site, asin });
-            productData = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+            productData = extractText(result) || (typeof result === 'string' ? result : JSON.stringify(result, null, 2));
           } catch (e) { productData = `无法获取产品数据: ${e.message}`; }
         }
 
