@@ -1122,47 +1122,47 @@ async function lookupASIN() {
 // ====== CROSS-CATEGORY BESTSELLER SYSTEM ======
 const SITE_DOMAINS = { US:'www.amazon.com', UK:'www.amazon.co.uk', DE:'www.amazon.de', JP:'www.amazon.co.jp', FR:'www.amazon.fr', IT:'www.amazon.it', ES:'www.amazon.es', CA:'www.amazon.ca', MX:'www.amazon.com.mx', IN:'www.amazon.in', AU:'www.amazon.com.au' };
 function amzProductUrl(asin, site) { return `https://${SITE_DOMAINS[site]||SITE_DOMAINS.US}/dp/${asin}`; }
-function amzCategoryUrl(nodeId, site) { return `https://${SITE_DOMAINS[site]||SITE_DOMAINS.US}/gp/bestsellers/fashion/${nodeId}`; }
+function amzCategoryUrl(nodeId, site) { return `https://${SITE_DOMAINS[site]||SITE_DOMAINS.US}/bestsellers/fashion/${nodeId}`; }
 // 多个图片源fallback
-function amzImageUrl(asin) { return `https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=${asin}&Format=_SL160_&ID=AsinImage&ServiceVersion=20070822&WS=1`; }
-function amzImageUrl2(asin) { return `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SCLZZZZZZZ_SX80_.jpg`; }
+function amzImageUrl(asin) { return `https://m.media-amazon.com/images/P/${asin}.01._SCLZZZZZZZ_SX120_.jpg`; }
+function amzImageUrl2(asin) { return `https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=${asin}&Format=_SL160_&ID=AsinImage&ServiceVersion=20070822&WS=1`; }
 
 const CROSS_CATEGORY_MAP = {
   '孕妇裤': [
-    { name: '女士牛仔裤', nodeId: '3743761', icon: '👖', keyInsight: '看牛仔裤的版型和弹力设计' },
-    { name: '女士休闲裤', nodeId: '1258809011', icon: '👖', keyInsight: '看腰部松紧和舒适面料' },
-    { name: '女士运动裤', nodeId: '1044724', icon: '🏃', keyInsight: '看弹力面料和运动剪裁' },
-    { name: '女士职业裤', nodeId: '2348187011', icon: '💼', keyInsight: '看正式场合的孕期穿搭需求' },
-    { name: '男士牛仔裤', nodeId: '3743771', icon: '👖', keyInsight: '看宽松版型和耐穿面料趋势' },
-    { name: '孕妇装专区', nodeId: '1046578', icon: '🤰', keyInsight: '直接竞品，看价格和评论痛点' },
+    { name: '女士牛仔裤', nodeId: '1048188', icon: '👖', keyInsight: '看牛仔裤的版型和弹力设计' },
+    { name: '女士裤装', nodeId: '1048184', icon: '👖', keyInsight: '看腰部松紧和舒适面料' },
+    { name: '女士运动裤', nodeId: '1046600', icon: '🏃', keyInsight: '看弹力面料和运动剪裁' },
+    { name: '孕妇牛仔裤', nodeId: '1285237011', icon: '🤰', keyInsight: '直接竞品，看价格和评论痛点' },
+    { name: '孕妇裤装', nodeId: '1285239011', icon: '🤰', keyInsight: '孕妇裤全品类竞争格局' },
+    { name: '孕妇运动裤', nodeId: '2379257011', icon: '🏃', keyInsight: '孕妇运动场景需求' },
   ],
   '瑜伽裤': [
-    { name: '女士运动紧身裤', nodeId: '1044724', icon: '🏃', keyInsight: '核心竞争类目' },
-    { name: '女士休闲裤', nodeId: '1258809011', icon: '👖', keyInsight: '看休闲穿搭趋势' },
-    { name: '运动内衣', nodeId: '7072327011', icon: '👙', keyInsight: '套装搭配机会' },
-    { name: '女士短裤', nodeId: '1046554', icon: '🩳', keyInsight: '夏季替代品趋势' },
-    { name: '男士运动裤', nodeId: '2476517011', icon: '🏋️', keyInsight: '看男性运动裤需求' },
-    { name: '大码运动裤', nodeId: '1046620', icon: '➕', keyInsight: '大码市场机会' },
+    { name: '女士运动裤', nodeId: '1046600', icon: '🏃', keyInsight: '核心竞争类目' },
+    { name: '女士裤装', nodeId: '1048184', icon: '👖', keyInsight: '看休闲穿搭趋势' },
+    { name: '女士牛仔裤', nodeId: '1048188', icon: '👖', keyInsight: '时尚牛仔裤市场参考' },
+    { name: '孕妇运动裤', nodeId: '2379257011', icon: '🤰', keyInsight: '孕妇瑜伽需求' },
+    { name: '孕妇休闲裤', nodeId: '2349050011', icon: '🤰', keyInsight: '休闲场景延伸' },
+    { name: '孕妇紧身裤', nodeId: '2379252011', icon: '🏋️', keyInsight: '紧身裤市场参考' },
   ],
   '工装裤': [
-    { name: '男士工装裤', nodeId: '2476518011', icon: '🔧', keyInsight: '核心竞争类目' },
-    { name: '男士休闲裤', nodeId: '1045564', icon: '👖', keyInsight: '看休闲工装融合趋势' },
-    { name: '女士工装裤', nodeId: '1258809011', icon: '👩‍🔧', keyInsight: '女性工装风崛起' },
-    { name: '男士牛仔裤', nodeId: '3743771', icon: '👖', keyInsight: '看耐穿面料趋势' },
-    { name: '户外裤', nodeId: '3400561', icon: '🏔️', keyInsight: '功能性面料参考' },
-    { name: '男士短裤', nodeId: '1045576', icon: '🩳', keyInsight: '夏季工装短裤需求' },
+    { name: '女士裤装', nodeId: '1048184', icon: '👖', keyInsight: '女裤整体市场' },
+    { name: '女士牛仔裤', nodeId: '1048188', icon: '👖', keyInsight: '看耐穿面料趋势' },
+    { name: '女士运动裤', nodeId: '1046600', icon: '🏃', keyInsight: '功能性面料参考' },
+    { name: '孕妇裤装', nodeId: '1285239011', icon: '🤰', keyInsight: '孕妇工装裤需求' },
+    { name: '孕妇职业裤', nodeId: '2528702011', icon: '💼', keyInsight: '职场孕妇需求' },
+    { name: '孕妇休闲裤', nodeId: '2349050011', icon: '👩‍🔧', keyInsight: '休闲工装风参考' },
   ],
 };
 
 function generateCrossCategories(keyword) {
   if (CROSS_CATEGORY_MAP[keyword]) return CROSS_CATEGORY_MAP[keyword];
   if (keyword.includes('裤')) return [
-    { name: '女士牛仔裤', nodeId: '3743761', icon: '👖', keyInsight: '女装牛仔裤市场' },
-    { name: '女士休闲裤', nodeId: '1258809011', icon: '👖', keyInsight: '休闲裤市场' },
-    { name: '男士裤装', nodeId: '1045564', icon: '👖', keyInsight: '男装裤子市场' },
-    { name: '运动裤', nodeId: '1044724', icon: '🏃', keyInsight: '运动裤市场' },
-    { name: '童装裤', nodeId: '1040660', icon: '👶', keyInsight: '童装裤子市场' },
-    { name: '大码裤装', nodeId: '1046620', icon: '➕', keyInsight: '大码市场' },
+    { name: '女士牛仔裤', nodeId: '1048188', icon: '👖', keyInsight: '女装牛仔裤市场' },
+    { name: '女士裤装', nodeId: '1048184', icon: '👖', keyInsight: '女裤市场' },
+    { name: '女士运动裤', nodeId: '1046600', icon: '🏃', keyInsight: '运动裤市场' },
+    { name: '孕妇裤装', nodeId: '1285239011', icon: '🤰', keyInsight: '孕妇裤市场' },
+    { name: '孕妇牛仔裤', nodeId: '1285237011', icon: '🤰', keyInsight: '孕妇牛仔裤' },
+    { name: '孕妇休闲裤', nodeId: '2349050011', icon: '👶', keyInsight: '孕妇休闲裤' },
   ];
   return [
     { name: '女装', nodeId: '7141123011', icon: '👗', keyInsight: '女装大类' },
